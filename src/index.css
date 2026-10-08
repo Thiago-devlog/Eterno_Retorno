@@ -3,34 +3,80 @@
 @tailwind utilities;
 
 :root {
-  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-smooth: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background-color: #FDFBF7;
-  color: #0F172A;
+  font-family: 'Inter', sans-serif;
+  background-color: #FBF9F5;
+  color: #1E1E1E;
   margin: 0;
   padding: 0;
 }
 
-/* Utilitários tipográficos editoriais */
-.font-display {
-  font-family: 'Playfair Display', Georgia, serif;
+/* Sheen / Verniz reflexivo para capas */
+.book-cover-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.book-cover-sheen::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -120%;
+  width: 60%;
+  height: 220%;
+  background: linear-gradient(
+    60deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transform: rotate(25deg);
+  transition: transform 0.85s var(--ease-out-expo), left 0.85s var(--ease-out-expo);
+  pointer-events: none;
+  z-index: 20;
+}
+.group:hover .book-cover-sheen::after {
+  left: 160%;
 }
 
-.font-reader {
-  font-family: 'Merriweather', Georgia, serif;
+/* Animação de Ficha de Estudo solta na mesa */
+.study-card {
+  transition: transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo), border-color 0.4s ease;
+}
+.study-card:hover {
+  transform: translateY(-7px) rotate(-0.5deg);
+  box-shadow: 0 22px 35px -8px rgba(90, 70, 50, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+  border-color: #DDD5C7;
 }
 
-.font-sans {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+/* Efeito tátil de livro extraído */
+.canonical-book-card {
+  transition: transform 0.45s var(--ease-out-expo), box-shadow 0.45s var(--ease-out-expo);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+.canonical-book-card:hover {
+  transform: translateY(-10px) scale(1.025);
+  box-shadow: 0 25px 35px -10px rgba(60, 45, 30, 0.2), 0 10px 20px -5px rgba(0, 0, 0, 0.05);
 }
 
-/* Efeito sutil de textura de papel */
-.bg-parchment-pattern {
-  background-color: #FDFBF7;
-  background-image: radial-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 0);
-  background-size: 24px 24px;
+@keyframes subtlePulseGlow {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(1.06); }
 }
 
+.hero-glow-pulse {
+  animation: subtlePulseGlow 7s ease-in-out infinite;
+}
+
+/* Esconder barra de rolagem horizontal mantendo scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
