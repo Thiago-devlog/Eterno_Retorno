@@ -1,0 +1,906 @@
+<!DOCTYPE html><html class="scroll-smooth" lang="pt-BR" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Eterno Retorno — Biblioteca Clássica &amp; Arquivo Vivo</title>
+<!-- Google Fonts: Playfair Display, Cormorant Garamond, Inter, Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&amp;family=Inter:wght@300;400;500;600;700&amp;family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            parchment: {
+              50: '#FAF8F5',
+              100: '#F5F2EB',
+              200: '#EBE6DC',
+              300: '#DDD5C7',
+            },
+            charcoal: {
+              DEFAULT: '#1E1E1E',
+              soft: '#2D2D2D',
+              muted: '#6B6864',
+              subtle: '#9A958E',
+            },
+            ochre: {
+              DEFAULT: '#B8860B',
+              warm: '#C29B38',
+              aged: '#8C6239',
+              light: '#DFBD69',
+            },
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            cormorant: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans: ['"Inter"', 'sans-serif'],
+            jakarta: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          boxShadow: {
+            'card-soft': '0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.03)',
+            'card-hover': '0 20px 40px -10px rgba(0, 0, 0, 0.1), 0 8px 16px -4px rgba(0, 0, 0, 0.05)',
+            'dark-hero': '0 24px 50px -12px rgba(10, 15, 30, 0.35)',
+            'book-elevated': '0 25px 35px -10px rgba(60, 45, 30, 0.22), 0 10px 18px -6px rgba(60, 45, 30, 0.12)',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+  /* Curvas bézier estilo Framer Motion / Awwwards */
+  :root {
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out-smooth: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  @keyframes headerSlideDown {
+    0% { opacity: 0; transform: translateY(-16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(24px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes subtlePulseGlow {
+    0%, 100% { opacity: 0.25; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(1.06); }
+  }
+
+  .animate-header-enter {
+    animation: headerSlideDown 0.85s var(--ease-out-expo) forwards;
+  }
+
+  .animate-hero-enter {
+    animation: fadeInUp 0.9s var(--ease-out-expo) 0.1s both;
+  }
+
+  .animate-search-enter {
+    animation: fadeInUp 0.85s var(--ease-out-expo) 0.2s both;
+  }
+
+  .animate-history-enter {
+    animation: fadeInUp 0.85s var(--ease-out-expo) 0.3s both;
+  }
+
+  /* Stagger entrances para autores */
+  .stagger-author-1 { animation: fadeInUp 0.85s var(--ease-out-expo) 0.15s both; }
+  .stagger-author-2 { animation: fadeInUp 0.85s var(--ease-out-expo) 0.25s both; }
+  .stagger-author-3 { animation: fadeInUp 0.85s var(--ease-out-expo) 0.35s both; }
+  .stagger-author-4 { animation: fadeInUp 0.85s var(--ease-out-expo) 0.45s both; }
+
+  /* Stagger entrances para livros */
+  .stagger-book-1 { animation: fadeInUp 0.9s var(--ease-out-expo) 0.25s both; }
+  .stagger-book-2 { animation: fadeInUp 0.9s var(--ease-out-expo) 0.35s both; }
+  .stagger-book-3 { animation: fadeInUp 0.9s var(--ease-out-expo) 0.45s both; }
+
+  /* Sheen / Verniz reflexivo para capas */
+  .book-cover-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .book-cover-sheen::after {
+    content: '';
+    position: absolute;
+    top: -60%;
+    left: -120%;
+    width: 60%;
+    height: 220%;
+    background: linear-gradient(
+      60deg,
+      transparent,
+      rgba(255, 255, 255, 0.25),
+      transparent
+    );
+    transform: rotate(25deg);
+    transition: transform 0.85s var(--ease-out-expo), left 0.85s var(--ease-out-expo);
+    pointer-events: none;
+    z-index: 20;
+  }
+  .group:hover .book-cover-sheen::after {
+    left: 160%;
+  }
+
+  /* Animação de Ficha de Estudo solta na mesa */
+  .study-card {
+    transition: transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo), border-color 0.4s ease;
+  }
+  .study-card:hover {
+    transform: translateY(-7px) rotate(-0.5deg);
+    box-shadow: 0 22px 35px -8px rgba(90, 70, 50, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+    border-color: #DDD5C7;
+  }
+
+  /* Efeito tátil de livro extraído */
+  .canonical-book-card {
+    transition: transform 0.45s var(--ease-out-expo), box-shadow 0.45s var(--ease-out-expo);
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  .canonical-book-card:hover {
+    transform: translateY(-10px) scale(1.025);
+    box-shadow: 0 25px 35px -10px rgba(60, 45, 30, 0.2), 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Glow pulsante de fundo no hero */
+  .hero-glow-pulse {
+    animation: subtlePulseGlow 7s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+</head>
+<body class="bg-[#FBF9F5] text-charcoal font-sans antialiased min-h-screen selection:bg-ochre-light selection:text-charcoal">
+<!-- Outer Canvas Container -->
+<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-6">
+<!-- 1. HEADER & NAVEGAÇÃO SUPERIOR -->
+<header class="flex items-center justify-between py-4 mb-8 animate-header-enter">
+<!-- Top Left Logo -->
+<a class="flex items-center gap-3.5 group transition-transform duration-300 active:scale-95" href="#inicio">
+<div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:bg-slate-800 group-hover:shadow-md">
+<!-- Book Spine / Icon -->
+<svg class="w-5 h-5 text-amber-300 transition-transform duration-300 group-hover:rotate-6" fill="currentColor" viewBox="0 0 24 24">
+<path d="M6 2h11a2 2 0 0 1 2 2v15a1 1 0 0 1-1.447.894L12 17.118l-5.553 2.776A1 1 0 0 1 5 19V4a2 2 0 0 1 2-2zm0 2v13.382l5.105-2.553a1 1 0 0 1 .895 0L17 17.382V4H6z"></path>
+</svg>
+</div>
+<div class="flex flex-col">
+<span class="font-serif font-bold text-lg sm:text-xl tracking-tight leading-none text-slate-900 uppercase group-hover:text-ochre-aged transition-colors duration-300">
+            Eterno Retorno
+          </span>
+<span class="text-[10px] uppercase font-jakarta tracking-[0.22em] text-charcoal-muted font-semibold mt-1">
+            Biblioteca Clássica
+          </span>
+</div>
+</a>
+<!-- Center Navigation Links -->
+<nav class="hidden md:flex items-center gap-8 text-[13px] font-medium text-charcoal-muted">
+<a class="text-slate-900 font-semibold relative py-1 group/link" href="#inicio">
+          Início
+          <span class="absolute bottom-0 left-0 w-full h-[2px] bg-slate-900 rounded-full transition-all duration-300"></span>
+</a>
+<a class="hover:text-slate-900 transition-colors py-1 relative group/link" href="#autores">
+          Autores do Séc. XIX
+          <span class="absolute bottom-0 left-0 w-0 h-[2px] bg-slate-900 rounded-full transition-all duration-300 group-hover/link:w-full"></span>
+</a>
+<a class="hover:text-slate-900 transition-colors py-1 relative group/link" href="#obras">
+          Catálogo Canônico
+          <span class="absolute bottom-0 left-0 w-0 h-[2px] bg-slate-900 rounded-full transition-all duration-300 group-hover/link:w-full"></span>
+</a>
+<a class="hover:text-slate-900 transition-colors py-1 relative group/link" href="#caderno">
+          Caderno de Notas
+          <span class="absolute bottom-0 left-0 w-0 h-[2px] bg-slate-900 rounded-full transition-all duration-300 group-hover/link:w-full"></span>
+</a>
+
+</nav>
+<!-- Right User Profile -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2.5 p-1 pr-3 rounded-full hover:bg-parchment-200/60 active:scale-95 transition-all duration-200 cursor-pointer border border-transparent hover:border-parchment-300 hover:shadow-sm">
+<img alt="Retrato de Machado de Assis" class="w-9 h-9 rounded-full object-cover object-top border border-slate-300 shadow-sm transition-transform duration-300 hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxvQ_Xrk-mUhI4bmO9PMaGmRUjQU9p2c0wIJhl06TmNr3d4esVwT-E4Vw-EglkBh3Fcr64YadxxZKXsRVMpTIM2aYxpbIDPT85YoY5u4nUkUUjNcYftF8VwYAkJXnjnUnr1bHF0ZsyO6AP-M1e11u0bwyd4GLC_f9aHNlje-JnT6NEE9b-GybjLc-KJ105E4Sfwy1TAm-CxuKQKmzW_-aIWlBA7qpBM_-FmOaCyGjTIwFm53cJYzLlfw">
+<div class="hidden sm:flex flex-col text-left">
+<span class="text-xs font-semibold text-slate-900 leading-tight">Machado de Assis</span>
+<span class="text-[10px] text-charcoal-muted">Leitor Canônico</span>
+</div>
+<svg class="w-4 h-4 text-charcoal-muted ml-0.5 transition-transform duration-200 hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</header>
+<!-- 2. SEÇÃO SUPERIOR DIVIDIDA (GRID COUNTRY BOOKS STYLE) -->
+<main class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- ================= COLUNA DA ESQUERDA (5 Colunas) ================= -->
+<div class="lg:col-span-5 space-y-6">
+<!-- Hero Banner Escuro Arredondado -->
+<div class="relative bg-slate-950 text-white rounded-3xl p-7 sm:p-8 overflow-hidden shadow-dark-hero flex flex-col justify-between min-h-[360px] border border-slate-800 transition-all duration-500 hover:border-slate-700 hover:shadow-2xl animate-hero-enter group/hero" id="hero-banner">
+<!-- Radial & Gradient Glow Background -->
+<div class="absolute inset-0 overflow-hidden pointer-events-none z-0"><video autoplay="" loop="" muted="" playsinline="" class="w-full h-full object-cover opacity-45 filter contrast-125 saturate-50"><source src="https://assets.mixkit.co/videos/preview/mixkit-ink-swirling-in-water-43354-large.mp4" type="video/mp4"></video><div class="absolute inset-0 bg-slate-950/75 backdrop-blur-md"></div><div class="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-950/80 to-amber-950/30"></div></div>
+<div class="absolute -top-24 -right-24 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl pointer-events-none hero-glow-pulse z-0"></div>
+<!-- Portrait with soft blend on the right -->
+<div class="absolute -right-6 top-0 bottom-0 w-3/5 pointer-events-none z-0 overflow-hidden">
+<img alt="Mestre em Destaque" class="w-full h-full object-cover object-top filter grayscale contrast-125 opacity-70 mix-blend-luminosity transition-all duration-700 ease-out group-hover/hero:scale-105 group-hover/hero:opacity-85" id="hero-portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvbpjpQX_7nUMEKqIKl8XnMQL1ZQ46vs8pr7gShzs_Yq_01D2eOG0bw_urOQdncUKitJcxbcFIFactSGssQPXi-hJU6vwTedE3EFAi-Ijhrdb71C9s7RYWbywDjNOwAz0UfOWSdxRDjRDfZLM_GvPKNT5nKnoDwv0ykbNceZaF09YU6yI731Hq63_WjAmIzUJUPkiSI6XKnr_4KO3LFt2anG7DbFT84cOgLkM6pD5985Ov6FswErqHhw">
+<div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/60 to-transparent"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
+</div>
+<!-- Banner Header Content -->
+<div class="relative z-10 max-w-[260px] sm:max-w-[280px]">
+<h1 class="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-white leading-[1.1] uppercase transition-all duration-500" id="hero-heading">
+              Mestres do Realismo
+            </h1>
+<p class="font-sans text-xs text-slate-300 mt-2 font-medium tracking-wide flex items-center gap-1.5" id="hero-subheading">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+              Século XIX no Brasil
+            </p>
+</div>
+<!-- Bottom Counter -->
+<div class="relative z-10 pt-16">
+<p class="text-[11px] font-sans text-slate-400 font-normal transition-colors group-hover/hero:text-slate-300" id="hero-counter-text">
+              Mais de 1.200 capítulos e edições históricas
+            </p>
+</div>
+<!-- Row of Author Avatars at bottom of Banner -->
+<div class="relative z-10 pt-4 border-t border-slate-800/80 flex items-center gap-2.5 overflow-x-auto no-scrollbar" id="hero-avatar-row">
+<!-- Active Selected Author -->
+<button class="hero-avatar-btn flex items-center gap-2 bg-slate-800/90 rounded-full pl-1 pr-3 py-1 border border-amber-400/80 shrink-0 cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-slate-700 focus:outline-none" data-author="Machado de Assis" data-count="Mais de 1.200 capítulos e edições históricas" data-img="https://lh3.googleusercontent.com/aida-public/AB6AXuCvbpjpQX_7nUMEKqIKl8XnMQL1ZQ46vs8pr7gShzs_Yq_01D2eOG0bw_urOQdncUKitJcxbcFIFactSGssQPXi-hJU6vwTedE3EFAi-Ijhrdb71C9s7RYWbywDjNOwAz0UfOWSdxRDjRDfZLM_GvPKNT5nKnoDwv0ykbNceZaF09YU6yI731Hq63_WjAmIzUJUPkiSI6XKnr_4KO3LFt2anG7DbFT84cOgLkM6pD5985Ov6FswErqHhw" data-sub="Século XIX no Brasil" data-title="Mestres do Realismo">
+<img alt="Machado de Assis" class="w-7 h-7 rounded-full object-cover object-top border border-amber-400 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArBFmuv8zsWSJp9bM6z1I-Jjd2oLoJHFdxf9hd664wNKllUi4in4Fjle0n4WRXeKjb2dpzow6bSVEA3siYpR9vkCSHwztnAIR2yAQFKohkUSdqSzDp2XI1QRXEItAjIFgLR2z9siCSmZS0TKcg1WQQr4q62-bfrKCqQ41K6UJRshaxIfvFuAE4hc6pZVjJG0VKddcTHHRXh9FEKOP-wlXL1uaiHUmc-MQRtuoIdfKiM_euGip0YFWqYA">
+<span class="hero-name-label text-[11px] font-medium text-white tracking-wide">Machado de Assis</span>
+</button>
+<!-- Avatar 2: José de Alencar -->
+<button class="hero-avatar-btn group/av relative w-8 h-8 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-slate-700/60 hover:border-amber-400 transition-all duration-300 hover:scale-115 focus:outline-none" data-author="José de Alencar" data-count="940 capítulos e romances indigenistas" data-img="https://lh3.googleusercontent.com/aida-public/AB6AXuB3ZaVdm2KMN-gveL0c3jbkiBqDeBphxO-NGdgmlaSjUlK2my2TVWbwLDwBMKYtypG-gW6bZSZTYm_ElSLO6mIOe2FS76KfWRu-ZA7HC7RdYSxsup01bsyh542hQpIhSPQGvs6rEOtIvbGReLJ9mNBkeg1iSGzQ7YSDYVS-gLCe2AybggSGQ8PHI3j0BexG3WF-Uf-1XQembrWh9YD_JdrV7BnaplF95L-nrJYW_YIY" data-sub="Fundações Nacionais do Séc. XIX" data-title="Romantismo e Brasilidade" title="José de Alencar">
+<img alt="José de Alencar" class="w-full h-full object-cover filter grayscale sepia-[0.3] transition-transform duration-300 group-hover/av:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3ZaVdm2KMN-gveL0c3jbkiBqDeBphxO-NGdgmlaSjUlK2my2TVWbwLDwBMKYtypG-gW6bZSZTYm_ElSLO6mIOe2FS76KfWRu-ZA7HC7RdYSxsup01bsyh542hQpIhSPQGvs6rEOtIvbGReLJ9mNBkeg1iSGzQ7YSDYVS-gLCe2AybggSGQ8PHI3j0BexG3WF-Uf-1XQembrWh9YD_JdrV7BnaplF95L-nrJYW_YIY">
+</button>
+<!-- Avatar 3: Castro Alves -->
+<button class="hero-avatar-btn group/av relative w-8 h-8 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-slate-700/60 hover:border-amber-400 transition-all duration-300 hover:scale-115 focus:outline-none" data-author="Castro Alves" data-count="320 poemas e manuscritos em versos" data-img="https://lh3.googleusercontent.com/aida-public/AB6AXuCX-c-103e86Ns4m8F4PuIjoyjzjh7Zp_w2_j871JxK23JDcOZfbe2vwFK8nOf2Eg_KrWDVY2IRh4DOBEJCJ-1rZefoAHwENauJeL1Rf4Flg2M0Xe5fh_lzm4G0NCVPkxCuP4LGdU_9D-Z9yP4eKCenFKyYImd0WtkaL01nQY8TshNPMykGx0TvmlF84h3IC__6aBPhM6JALW28Epg2P0ea98PEUvPMKWjQnNQE2pIl" data-sub="Poesia Condoreira &amp; Liberdade" data-title="A Voz dos Escravos" title="Castro Alves">
+<img alt="Castro Alves" class="w-full h-full object-cover filter grayscale sepia-[0.3] transition-transform duration-300 group-hover/av:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCX-c-103e86Ns4m8F4PuIjoyjzjh7Zp_w2_j871JxK23JDcOZfbe2vwFK8nOf2Eg_KrWDVY2IRh4DOBEJCJ-1rZefoAHwENauJeL1Rf4Flg2M0Xe5fh_lzm4G0NCVPkxCuP4LGdU_9D-Z9yP4eKCenFKyYImd0WtkaL01nQY8TshNPMykGx0TvmlF84h3IC__6aBPhM6JALW28Epg2P0ea98PEUvPMKWjQnNQE2pIl">
+</button>
+<!-- Avatar 4: Aluísio Azevedo -->
+<button class="hero-avatar-btn group/av relative w-8 h-8 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-slate-700/60 hover:border-amber-400 transition-all duration-300 hover:scale-115 focus:outline-none" data-author="Aluísio Azevedo" data-count="610 capítulos e crônicas sociais" data-img="https://lh3.googleusercontent.com/aida-public/AB6AXuAUlT1fhAB0eVkRPza4w1oXAvH0J8Qrv5ZJ2WZEAtBmaNcvkvTUuR2BHycT-vtHgNDzvEcCIbrJX4CfN3dyriG3Ti3rfKRHuUj6eQ-dTVGxLSBs_RbWnkRyHwoQFfkorzFynEA0bud5p8dttBMlYOAA9w9JqVLeWb0BY0hesLA3nAji_8Q74W8_HA96CuIlxs0JS4vvGRF6qhg7V0qd7WvXTmc5nBMSRFI0qTXYR27G" data-sub="O Fervo Urbano do Rio de Janeiro" data-title="O Cortiço e o Naturalismo" title="Aluísio Azevedo">
+<img alt="Aluísio Azevedo" class="w-full h-full object-cover filter grayscale sepia-[0.3] transition-transform duration-300 group-hover/av:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUlT1fhAB0eVkRPza4w1oXAvH0J8Qrv5ZJ2WZEAtBmaNcvkvTUuR2BHycT-vtHgNDzvEcCIbrJX4CfN3dyriG3Ti3rfKRHuUj6eQ-dTVGxLSBs_RbWnkRyHwoQFfkorzFynEA0bud5p8dttBMlYOAA9w9JqVLeWb0BY0hesLA3nAji_8Q74W8_HA96CuIlxs0JS4vvGRF6qhg7V0qd7WvXTmc5nBMSRFI0qTXYR27G">
+</button>
+<!-- Avatar 5: Raul Pompeia -->
+<button class="hero-avatar-btn group/av relative w-8 h-8 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-slate-700/60 hover:border-amber-400 transition-all duration-300 hover:scale-115 focus:outline-none" data-author="Raul Pompeia" data-count="450 páginas de prosa primorosa" data-img="https://lh3.googleusercontent.com/aida-public/AB6AXuAfvhdE7IcNnlePyEqLFF8zyoBnQ6IyRWIhXPp_eKDrZGFF6fTuj29r0xiNDh4Bx9G5hotGacIV1LuP0Dj1EB-qCbtQqPKogRoI3lRoI-8nvyzlkNcz4R-zsoBBSCeqn1iio1jMCAFC-lNsCIbpIiGLyPIMTSadAt71o7Zf5XjcXma-PF8nOYAmb5gm6NtCMUR2zNa5UTJh_oRbB8WBxORQ4bmXx85aiQf4zG81lSH_" data-sub="Impressionismo Psicológico" data-title="O Ateneu &amp; Memórias" title="Raul Pompeia">
+<img alt="Raul Pompeia" class="w-full h-full object-cover filter grayscale sepia-[0.3] transition-transform duration-300 group-hover/av:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfvhdE7IcNnlePyEqLFF8zyoBnQ6IyRWIhXPp_eKDrZGFF6fTuj29r0xiNDh4Bx9G5hotGacIV1LuP0Dj1EB-qCbtQqPKogRoI3lRoI-8nvyzlkNcz4R-zsoBBSCeqn1iio1jMCAFC-lNsCIbpIiGLyPIMTSadAt71o7Zf5XjcXma-PF8nOYAmb5gm6NtCMUR2zNa5UTJh_oRbB8WBxORQ4bmXx85aiQf4zG81lSH_">
+</button>
+</div>
+</div>
+<!-- Barra de Pesquisa Integrada e Filtros Compactos (Country Books Style) -->
+<div class="bg-white rounded-2xl p-2.5 sm:p-3 shadow-card-soft border border-parchment-200 flex flex-wrap sm:flex-nowrap items-center gap-2 transition-all duration-300 hover:shadow-md animate-search-enter">
+<!-- Input Search -->
+<div class="search-input-box flex items-center gap-2.5 flex-1 px-3 py-2 bg-[#FAF8F5] rounded-xl text-xs text-charcoal border border-transparent transition-all duration-300 focus-within:bg-white focus-within:border-ochre-aged/40 focus-within:ring-2 focus-within:ring-ochre-light/20">
+<svg class="w-4 h-4 text-charcoal-muted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<input class="w-full bg-transparent border-0 p-0 text-xs text-charcoal placeholder:text-charcoal-subtle focus:ring-0" placeholder="Buscar autor ou obra..." type="text">
+</div>
+<!-- Dropdown 1: Categoria -->
+<div class="flex items-center gap-1.5 px-3 py-2 bg-[#FAF8F5] rounded-xl text-xs text-charcoal font-medium cursor-pointer hover:bg-parchment-200/80 active:scale-95 transition-all duration-200 border border-transparent hover:border-parchment-300">
+<span class="text-charcoal-muted text-[11px]">Tipo:</span>
+<span class="font-semibold text-slate-900">Todos</span>
+<svg class="w-3.5 h-3.5 text-charcoal-muted ml-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<!-- Dropdown 2: Século -->
+<div class="flex items-center gap-1.5 px-3 py-2 bg-[#FAF8F5] rounded-xl text-xs text-charcoal font-medium cursor-pointer hover:bg-parchment-200/80 active:scale-95 transition-all duration-200 border border-transparent hover:border-parchment-300">
+<span class="text-charcoal-muted text-[11px]">Séc:</span>
+<span class="font-semibold text-slate-900">XIX</span>
+<svg class="w-3.5 h-3.5 text-charcoal-muted ml-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<!-- Round Action Button -->
+<button class="bg-slate-950 text-white text-[11px] font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl hover:bg-slate-800 active:scale-90 hover:shadow-md transition-all duration-200 shadow-sm shrink-0">
+            Ir
+          </button>
+</div>
+<!-- Últimas Leituras Consultadas (Last Request / Compact Table) -->
+<div class="bg-white rounded-2xl p-5 shadow-card-soft border border-parchment-200 space-y-4 animate-history-enter transition-all duration-300 hover:shadow-card-hover">
+<div class="flex items-center justify-between pb-2 border-b border-parchment-200/60">
+<span class="text-[11px] font-jakarta uppercase tracking-wider font-semibold text-charcoal-muted">Últimas consultas</span>
+<span class="text-[11px] text-ochre-aged font-semibold cursor-pointer hover:underline transition-colors hover:text-slate-900">Ver histórico</span>
+</div>
+<!-- Item 1 -->
+<div class="flex items-center justify-between gap-3 text-xs py-1.5 px-2 -mx-2 rounded-xl group cursor-pointer transition-all duration-250 hover:bg-parchment-100/70 hover:translate-x-1">
+<div class="flex items-center gap-3">
+<span class="text-[11px] font-mono text-charcoal-subtle font-semibold transition-colors group-hover:text-ochre-aged">1</span>
+<div class="w-7 h-9 rounded bg-parchment-200 overflow-hidden shadow-sm shrink-0 transition-transform duration-300 group-hover:scale-105">
+<img alt="Brás Cubas" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQy3A67h-BGBxSDy_PSw6NAGWmkw1pDZqVaunyfKoeYXnFqk77mZqu7IVdo9QhNI4H7eMshZsz0AGQpv5yrXzKhqL0cMcnWir-syV5b_v1VwMPQ6bCFuL1tEWstxJSj-IDpzZU9Q8_Rje2y1zrU_msMUecIbuWDM0FBH3stoHnrPBCfg8l5eKIWYMJ2NX9nTGGyMov-ETa8nS9ZzXbQ3O5dQ3cZQZa9aV8xsQnh9L-g0PZBcT3pPAC4w">
+</div>
+<div>
+<p class="font-serif font-semibold text-slate-900 group-hover:text-ochre-aged transition-colors leading-tight">Memórias Póstumas</p>
+<p class="text-[11px] text-charcoal-muted">Machado de Assis</p>
+</div>
+</div>
+<div class="text-right flex items-center gap-1 text-[11px] text-charcoal-muted transition-transform duration-300 group-hover:scale-105">
+<span class="text-amber-500 font-bold">★ 4.9</span>
+<span class="">• 42k</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between gap-3 text-xs py-1.5 px-2 -mx-2 rounded-xl group cursor-pointer transition-all duration-250 hover:bg-parchment-100/70 hover:translate-x-1">
+<div class="flex items-center gap-3">
+<span class="text-[11px] font-mono text-charcoal-subtle font-semibold transition-colors group-hover:text-ochre-aged">2</span>
+<div class="w-7 h-9 rounded bg-emerald-900/10 overflow-hidden shadow-sm shrink-0 border border-slate-200 transition-transform duration-300 group-hover:scale-105">
+<div class="w-full h-full bg-[#18363F] flex items-center justify-center text-[7px] font-serif text-white text-center p-0.5">DC</div>
+</div>
+<div>
+<p class="font-serif font-semibold text-slate-900 group-hover:text-ochre-aged transition-colors leading-tight">Dom Casmurro</p>
+<p class="text-[11px] text-charcoal-muted">Machado de Assis</p>
+</div>
+</div>
+<div class="text-right flex items-center gap-1 text-[11px] text-charcoal-muted transition-transform duration-300 group-hover:scale-105">
+<span class="text-amber-500 font-bold">★ 4.8</span>
+<span class="">• 58k</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center justify-between gap-3 text-xs py-1.5 px-2 -mx-2 rounded-xl group cursor-pointer transition-all duration-250 hover:bg-parchment-100/70 hover:translate-x-1">
+<div class="flex items-center gap-3">
+<span class="text-[11px] font-mono text-charcoal-subtle font-semibold transition-colors group-hover:text-ochre-aged">3</span>
+<div class="w-7 h-9 rounded bg-[#843e2b] overflow-hidden shadow-sm shrink-0 flex items-center justify-center text-[7px] font-serif text-white text-center p-0.5 transition-transform duration-300 group-hover:scale-105">
+                QB
+              </div>
+<div>
+<p class="font-serif font-semibold text-slate-900 group-hover:text-ochre-aged transition-colors leading-tight">Quincas Borba</p>
+<p class="text-[11px] text-charcoal-muted">Machado de Assis</p>
+</div>
+</div>
+<div class="text-right flex items-center gap-1 text-[11px] text-charcoal-muted transition-transform duration-300 group-hover:scale-105">
+<span class="text-amber-500 font-bold">★ 4.7</span>
+<span class="">• 19k</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ================= COLUNA DA DIREITA (7 Colunas) ================= -->
+<div class="lg:col-span-7 space-y-8">
+<!-- SEÇÃO: AUTORES EM DESTAQUE (Popular writer style) -->
+<section id="autores">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-serif text-2xl font-bold text-slate-900">
+              Autores em Destaque
+            </h2>
+<div class="flex items-center gap-2 text-xs font-semibold text-charcoal-muted">
+<button aria-label="Autor anterior" class="p-1 rounded-full border border-parchment-300 hover:bg-white hover:border-slate-400 active:scale-90 text-charcoal transition-all duration-200">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<button aria-label="Próximo autor" class="p-1 rounded-full border border-parchment-300 hover:bg-white hover:border-slate-400 active:scale-90 text-charcoal transition-all duration-200">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+</div>
+<!-- Cards Verticais de Autores com Bordas Arredondadas (4 items) -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+<!-- Card Autor 1: Machado de Assis -->
+<div class="stagger-author-1 group bg-white rounded-2xl p-3 shadow-card-soft hover:shadow-card-hover transition-all duration-400 border border-parchment-200 flex flex-col cursor-pointer hover:-translate-y-1.5">
+<div class="w-full aspect-[4/5] rounded-xl overflow-hidden bg-slate-100 relative">
+<img alt="Machado de Assis" class="w-full h-full object-cover object-top filter grayscale contrast-125 transition-transform duration-700 ease-out group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2A1_FHMBJPgnM3m5NfrNea6ODigVlAsLfX10XxDvbuJ78YS619KqBj0-vnVlbHgUGRy1HH6qR9dK3WPnDKwWpEmHCn-trbiDbW9cPU3RlthP26OHYXwQzWprn7MhDETvE7zrs0S3E8wfE19B3KX_9VC063-qAxE9iGpVTDIGwUPG9GcS1E2iIxpEt03PNOdamaqV3P0Jg9cS_Mulul8_0_QvzWJCLCNdaaHdMbb6eocLUS4YZygOMww">
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+</div>
+<div class="pt-3 pb-1 text-left">
+<h3 class="font-serif font-bold text-sm text-slate-900 group-hover:text-ochre-aged transition-colors truncate">
+                  Machado de Assis
+                </h3>
+<div class="flex items-center gap-1.5 text-[11px] text-charcoal-muted mt-1 font-medium">
+<span class="text-amber-500 font-bold">★ 4.9</span>
+<span class="">• 38k leituras</span>
+</div>
+</div>
+</div>
+<!-- Card Autor 2: Lima Barreto -->
+<div class="stagger-author-2 group bg-white rounded-2xl p-3 shadow-card-soft hover:shadow-card-hover transition-all duration-400 border border-parchment-200 flex flex-col cursor-pointer hover:-translate-y-1.5">
+<div class="w-full aspect-[4/5] rounded-xl overflow-hidden bg-slate-100 relative">
+<img alt="Lima Barreto" class="w-full h-full object-cover filter grayscale contrast-110 sepia-[0.25] transition-transform duration-700 ease-out group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCffM3ijmhFKqIkCUpuFXU7BmgT57AIWiH6Yl9UYZZ6zgaYvBESzI7fsxN3rhl1jwAAHB1N0EuOIjlEU5wRMk3RswwquP8uoDiWInRAyrZQ0eriZDMzcCL2TK5z4ASalJlbZt4XebXu0zlxGh0-7wMkJOlglk_gcjwhC1QdPa-kqZ9HtbyvBnTm3ONmxy99fRMfZO0K73GZDTh7Ymd-May_o1Vb903NByZ90uy1S-Nl">
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+</div>
+<div class="pt-3 pb-1 text-left">
+<h3 class="font-serif font-bold text-sm text-slate-900 group-hover:text-ochre-aged transition-colors truncate">
+                  Lima Barreto
+                </h3>
+<div class="flex items-center gap-1.5 text-[11px] text-charcoal-muted mt-1 font-medium">
+<span class="text-amber-500 font-bold">★ 4.8</span>
+<span class="">• 22k leituras</span>
+</div>
+</div>
+</div>
+<!-- Card Autor 3: Raul Pompéia -->
+<div class="stagger-author-3 group bg-white rounded-2xl p-3 shadow-card-soft hover:shadow-card-hover transition-all duration-400 border border-parchment-200 flex flex-col cursor-pointer hover:-translate-y-1.5">
+<div class="w-full aspect-[4/5] rounded-xl overflow-hidden bg-slate-100 relative">
+<img alt="Raul Pompéia" class="w-full h-full object-cover filter grayscale contrast-125 sepia-[0.2] transition-transform duration-700 ease-out group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtXgOZiXgWL7OurHWQfvMXA9cxaGzfVaEoHjbVdfy6qpYIEFCaz1xa_OdKyPfmWrhkbXjSUB4JmyWNSQuCxloLTRpHbiYV94DhIrjNe6G5LDRdYjwDORw_nXdXMyzYtfliaoykted2ErIdSf7tpPu_sposwujCLwukN96Tfz1Y-eB9ozgV-50D-xv4Iwiv6j7ERWWILMxzMrHdEM0hwKl0o8hdIiW0y_e8iEblzgIl">
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+</div>
+<div class="pt-3 pb-1 text-left">
+<h3 class="font-serif font-bold text-sm text-slate-900 group-hover:text-ochre-aged transition-colors truncate">
+                  Raul Pompéia
+                </h3>
+<div class="flex items-center gap-1.5 text-[11px] text-charcoal-muted mt-1 font-medium">
+<span class="text-amber-500 font-bold">★ 4.7</span>
+<span class="">• 16k leituras</span>
+</div>
+</div>
+</div>
+<!-- Card Autor 4: Olavo Bilac -->
+<div class="stagger-author-4 group bg-white rounded-2xl p-3 shadow-card-soft hover:shadow-card-hover transition-all duration-400 border border-parchment-200 flex flex-col cursor-pointer hover:-translate-y-1.5">
+<div class="w-full aspect-[4/5] rounded-xl overflow-hidden bg-slate-100 relative">
+<img alt="Olavo Bilac" class="w-full h-full object-cover filter grayscale contrast-110 sepia-[0.3] transition-transform duration-700 ease-out group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKowCIDjWFFDPC7oGAb7YisdJQcA_BtFf34oJoaVbERHyLL10ZusPLn8koHtjSl-dW8GpPMeRxo9dp50HUv3TP6G9m5SSGv4qUDvat-z4TiCywhSYkCUS9lTqh_WINLnRqHPu3V-gUhOv18Kn3BQTzNTflVTZXglnLsUw2ZViJhLIeT-qLr5fpM0k3dEEDi5TuTYnQCPl9EN7FdLMzKATntMBTKkwrlHZV9aoCyrPF">
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+</div>
+<div class="pt-3 pb-1 text-left">
+<h3 class="font-serif font-bold text-sm text-slate-900 group-hover:text-ochre-aged transition-colors truncate">
+                  Olavo Bilac
+                </h3>
+<div class="flex items-center gap-1.5 text-[11px] text-charcoal-muted mt-1 font-medium">
+<span class="text-amber-500 font-bold">★ 4.6</span>
+<span class="">• 12k leituras</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SEÇÃO: OBRAS CANÔNICAS (Books section style) -->
+<section id="obras">
+<div class="flex items-center justify-between mb-4">
+<div>
+<h2 class="font-serif text-2xl font-bold text-slate-900">
+                Obras Canônicas
+              </h2>
+<p class="font-cormorant italic text-sm text-charcoal-muted">Volumes integrais com anotações e edições fac-símile</p>
+</div>
+<a class="group text-xs font-semibold text-ochre-aged hover:text-slate-900 transition-all uppercase tracking-wider inline-flex items-center gap-1" href="#catalogo">
+              Ver Todas (24) <span class="transition-transform duration-300 group-hover:translate-x-1">→</span>
+</a>
+</div>
+<!-- Cards de Livros Verticais (Grid de 3 Colunas) -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+<!-- Book 1: Memórias Póstumas de Brás Cubas -->
+<div class="stagger-book-1 group canonical-book-card bg-white rounded-2xl p-3 shadow-card-soft border border-parchment-200 flex flex-col cursor-pointer">
+<div class="book-cover-sheen relative w-full aspect-[3/4.4] rounded-xl overflow-hidden bg-parchment-100 border border-parchment-300 shadow-sm flex items-center justify-center p-2">
+<img alt="Frontispício fac-símile de Memórias Póstumas" class="w-full h-full object-contain filter sepia-[0.15] group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQy3A67h-BGBxSDy_PSw6NAGWmkw1pDZqVaunyfKoeYXnFqk77mZqu7IVdo9QhNI4H7eMshZsz0AGQpv5yrXzKhqL0cMcnWir-syV5b_v1VwMPQ6bCFuL1tEWstxJSj-IDpzZU9Q8_Rje2y1zrU_msMUecIbuWDM0FBH3stoHnrPBCfg8l5eKIWYMJ2NX9nTGGyMov-ETa8nS9ZzXbQ3O5dQ3cZQZa9aV8xsQnh9L-g0PZBcT3pPAC4w">
+<span class="absolute top-2.5 right-2.5 bg-amber-400 text-slate-950 font-bold text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-mono shadow-sm transition-transform duration-300 group-hover:scale-105">
+                  1881
+                </span>
+</div>
+<div class="pt-3 pb-1">
+<p class="text-[11px] text-charcoal-muted font-sans uppercase tracking-wider font-semibold">Machado de Assis</p>
+<h3 class="font-serif font-bold text-base text-slate-900 group-hover:text-ochre-aged transition-colors leading-snug mt-0.5">
+                  Memórias Póstumas
+                </h3>
+<div class="flex items-center gap-1.5 text-xs text-charcoal-muted mt-1.5">
+<span class="text-amber-500 font-bold">★ 4.9</span>
+<span class="">• 48k resenhas</span>
+</div>
+</div>
+</div>
+<!-- Book 2: Dom Casmurro -->
+<div class="stagger-book-2 group canonical-book-card bg-white rounded-2xl p-3 shadow-card-soft border border-parchment-200 flex flex-col cursor-pointer">
+<div class="book-cover-sheen relative w-full aspect-[3/4.4] rounded-xl overflow-hidden bg-[#18363F] border border-[#234d59] shadow-sm flex flex-col justify-between p-4 text-parchment-100">
+<div class="flex justify-between items-center text-[9px] uppercase tracking-widest text-ochre-light font-mono">
+<span class="">Edição Garnier</span>
+<span class="bg-slate-900/40 px-1.5 py-0.5 rounded">1899</span>
+</div>
+<div class="text-center my-auto space-y-1">
+<h4 class="font-serif text-lg font-bold tracking-wider text-parchment-50 uppercase leading-tight group-hover:scale-105 transition-transform duration-300">
+                    Dom Casmurro
+                  </h4>
+<p class="font-cormorant italic text-xs text-amber-200">
+                    Capitu &amp; Olhos de Ressaca
+                  </p>
+</div>
+<div class="text-[9px] font-mono tracking-widest uppercase text-center text-parchment-300 border-t border-ochre/30 pt-1">
+                  Rio de Janeiro
+                </div>
+</div>
+<div class="pt-3 pb-1">
+<p class="text-[11px] text-charcoal-muted font-sans uppercase tracking-wider font-semibold">Machado de Assis</p>
+<h3 class="font-serif font-bold text-base text-slate-900 group-hover:text-ochre-aged transition-colors leading-snug mt-0.5">
+                  Dom Casmurro
+                </h3>
+<div class="flex items-center gap-1.5 text-xs text-charcoal-muted mt-1.5">
+<span class="text-amber-500 font-bold">★ 4.8</span>
+<span class="">• 54k resenhas</span>
+</div>
+</div>
+</div>
+<!-- Book 3: Quincas Borba -->
+<div class="stagger-book-3 group canonical-book-card bg-white rounded-2xl p-3 shadow-card-soft border border-parchment-200 flex flex-col cursor-pointer">
+<div class="book-cover-sheen relative w-full aspect-[3/4.4] rounded-xl overflow-hidden bg-[#843e2b] border border-[#a2513c] shadow-sm flex flex-col justify-between p-4 text-parchment-100">
+<div class="flex justify-between items-center text-[9px] uppercase tracking-widest text-parchment-200 font-mono">
+<span class="">Humanitismo</span>
+<span class="bg-slate-900/40 px-1.5 py-0.5 rounded text-amber-200">1891</span>
+</div>
+<div class="text-center my-auto space-y-1">
+<h4 class="font-serif text-lg font-bold tracking-wider text-parchment-50 uppercase leading-tight group-hover:scale-105 transition-transform duration-300">
+                    Quincas Borba
+                  </h4>
+<p class="font-cormorant italic text-xs text-amber-200">
+                    “Ao vencedor, as batatas!”
+                  </p>
+</div>
+<div class="text-[9px] font-mono tracking-widest uppercase text-center text-parchment-300 border-t border-ochre-light/30 pt-1">
+                  Romance Psicológico
+                </div>
+</div>
+<div class="pt-3 pb-1">
+<p class="text-[11px] text-charcoal-muted font-sans uppercase tracking-wider font-semibold">Machado de Assis</p>
+<h3 class="font-serif font-bold text-base text-slate-900 group-hover:text-ochre-aged transition-colors leading-snug mt-0.5">
+                  Quincas Borba
+                </h3>
+<div class="flex items-center gap-1.5 text-xs text-charcoal-muted mt-1.5">
+<span class="text-amber-500 font-bold">★ 4.7</span>
+<span class="">• 29k resenhas</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- 3. SEÇÃO INFERIOR: CADERNO DE LEITURA & ANOTAÇÕES MARGINAIS (Preservando conteúdo histórico) -->
+<section class="mt-16 pt-10 border-t border-parchment-300/80 space-y-10" id="caderno">
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div>
+      <span class="text-xs uppercase tracking-[0.25em] font-mono text-ochre-aged font-bold flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+        Vigília &amp; Ritmo Solene
+      </span>
+      <h2 class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mt-1 italic">
+        Maratona de Leitura &amp; Caderno de Registro
+      </h2>
+    </div>
+    <p class="font-cormorant italic text-base sm:text-lg text-charcoal-muted max-w-lg leading-relaxed">
+      Caderno orgânico de anotações, permanência silenciosa e o andamento das obras canônicas do século XIX em ritmo acolhedor.
+    </p>
+  </div>
+
+  <!-- Bloco Principal Integrado: Maratona + Painel Cozy de Vigília -->
+  <div class="bg-white rounded-3xl p-6 sm:p-8 md:p-10 border border-parchment-200 shadow-card-soft space-y-10 study-card relative overflow-hidden">
+    <!-- Detalhe decorativo sutil de fitilho/marcação no canto superior -->
+    <div class="absolute top-0 right-12 w-8 h-14 bg-gradient-to-b from-[#843e2b] to-[#a2513c] rounded-b-md shadow-md flex items-end justify-center pb-1.5 opacity-90 pointer-events-none">
+      <span class="w-1.5 h-1.5 rounded-full bg-amber-300/80"></span>
+    </div>
+
+    <!-- 1. Destaques da Maratona Literária (Cartões Táteis Estilo Papel Pólen) -->
+    <div>
+      <div class="flex items-center justify-between pb-3 border-b border-parchment-100 mb-6">
+        <div class="flex items-center gap-2">
+          <span class="font-serif font-bold text-slate-900 text-lg">Vigília Literária do Outono</span>
+          <span class="text-[11px] font-mono bg-parchment-100 text-ochre-aged px-2.5 py-0.5 rounded-full font-semibold border border-parchment-200">Meta Ativa: 120 Horas</span>
+        </div>
+        <span class="text-[11px] font-mono text-charcoal-muted">Caderno de Bordo #1881</span>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <!-- Cartão 1: Dias Consecutivos -->
+        <div class="p-5 rounded-2xl bg-[#FAF8F5] border border-parchment-200/70 hover:border-amber-400/60 hover:shadow-sm transition-all duration-300 group cursor-default">
+          <div class="flex items-center justify-between text-charcoal-muted mb-2">
+            <span class="text-[11px] font-mono uppercase tracking-wider font-semibold text-charcoal-subtle">Vigília Contínua</span>
+            <span class="text-amber-500 font-serif text-lg font-bold group-hover:scale-110 transition-transform">✦</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 group-hover:text-ochre-aged transition-colors">47</span>
+            <span class="text-xs font-serif italic text-charcoal-muted">dias</span>
+          </div>
+          <p class="text-[11px] text-ochre-aged font-semibold mt-2 flex items-center gap-1 font-mono">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span> Fio ininterrupto
+          </p>
+        </div>
+
+        <!-- Cartão 2: Horas Dedicadas -->
+        <div class="p-5 rounded-2xl bg-[#FAF8F5] border border-parchment-200/70 hover:border-amber-400/60 hover:shadow-sm transition-all duration-300 group cursor-default">
+          <div class="flex items-center justify-between text-charcoal-muted mb-2">
+            <span class="text-[11px] font-mono uppercase tracking-wider font-semibold text-charcoal-subtle">Tempo de Mergulho</span>
+            <span class="text-amber-500 font-serif text-lg font-bold group-hover:scale-110 transition-transform">⌛</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 group-hover:text-ochre-aged transition-colors">94h</span>
+            <span class="text-xs font-serif italic text-charcoal-muted">/ 120h</span>
+          </div>
+          <p class="text-[11px] text-charcoal-muted font-medium mt-2 font-mono">
+            Ritmo médio: 2h/dia
+          </p>
+        </div>
+
+        <!-- Cartão 3: Páginas Consultadas -->
+        <div class="p-5 rounded-2xl bg-[#FAF8F5] border border-parchment-200/70 hover:border-amber-400/60 hover:shadow-sm transition-all duration-300 group cursor-default">
+          <div class="flex items-center justify-between text-charcoal-muted mb-2">
+            <span class="text-[11px] font-mono uppercase tracking-wider font-semibold text-charcoal-subtle">Páginas Percorridas</span>
+            <span class="text-amber-500 font-serif text-lg font-bold group-hover:scale-110 transition-transform">❦</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 group-hover:text-ochre-aged transition-colors">1.842</span>
+          </div>
+          <p class="text-[11px] text-ochre-aged font-semibold mt-2 font-mono">
+            +280 páginas esta semana
+          </p>
+        </div>
+
+        <!-- Cartão 4: Marcos & Capítulos -->
+        <div class="p-5 rounded-2xl bg-[#FAF8F5] border border-parchment-200/70 hover:border-amber-400/60 hover:shadow-sm transition-all duration-300 group cursor-default">
+          <div class="flex items-center justify-between text-charcoal-muted mb-2">
+            <span class="text-[11px] font-mono uppercase tracking-wider font-semibold text-charcoal-subtle">Capítulos Vencidos</span>
+            <span class="text-amber-500 font-serif text-lg font-bold group-hover:scale-110 transition-transform">✒</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 group-hover:text-ochre-aged transition-colors">116</span>
+            <span class="text-xs font-serif italic text-charcoal-muted">capítulos</span>
+          </div>
+          <p class="text-[11px] text-emerald-700 font-semibold mt-2 font-mono">
+            3 volumes avançando
+          </p>
+        </div>
+      </div>
+
+      <!-- Barra Geral de Ritmo da Maratona -->
+      <div class="mt-6 p-4 rounded-2xl bg-[#FAF8F5] border border-parchment-200/80 space-y-3">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center text-xs gap-1.5">
+          <div class="flex items-center gap-2">
+            <span class="font-serif font-bold text-slate-900 text-sm">Progresso da Maratona em Curso:</span>
+            <span class="font-cormorant italic text-sm text-charcoal-muted">Trilogia Realista de Machado de Assis</span>
+          </div>
+          <span class="font-mono font-bold text-ochre-aged text-xs">78% Concluído (328/420 páginas alvo)</span>
+        </div>
+        <div class="w-full h-2.5 rounded-full bg-parchment-200 overflow-hidden p-0.5 border border-parchment-300/50">
+          <div class="h-full bg-gradient-to-r from-ochre-aged via-amber-500 to-amber-400 rounded-full transition-all duration-700" style="width: 78%"></div>
+        </div>
+        <div class="flex justify-between text-[11px] font-mono text-charcoal-muted pt-0.5">
+          <span class="">Marco I: Brás Cubas (Concluído)</span>
+          <span class="">Marco II: Quincas Borba (Em andamento)</span>
+          <span class="">Marco III: Dom Casmurro</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Histórico de Leitura & Progresso Canônico (Fichas Táteis com Capas & Fitilho) -->
+    <div>
+      <div class="flex items-center justify-between pb-3 border-b border-parchment-100 mb-6">
+        <div>
+          <h3 class="font-serif font-bold text-xl text-slate-900">
+            Histórico de Leitura &amp; Fichamento de Obras
+          </h3>
+          <p class="font-cormorant italic text-sm text-charcoal-muted mt-0.5">
+            Acompanhamento detalhado de cadernos, anotações de margem e ritmo nas edições históricas.
+          </p>
+        </div>
+        <a href="#obras" class="text-xs font-semibold text-ochre-aged hover:text-slate-900 transition-colors uppercase font-mono tracking-wider">
+          Ficha Completa →
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Obra 1: Memórias Póstumas -->
+        <div class="p-5 rounded-2xl bg-[#FAF8F5] border border-parchment-200/80 hover:border-amber-400 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+          <div>
+            <div class="flex items-start gap-4 mb-4">
+              <div class="w-12 h-16 rounded-lg overflow-hidden bg-parchment-200 shadow-sm shrink-0 border border-parchment-300 group-hover:scale-105 transition-transform duration-300">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQy3A67h-BGBxSDy_PSw6NAGWmkw1pDZqVaunyfKoeYXnFqk77mZqu7IVdo9QhNI4H7eMshZsz0AGQpv5yrXzKhqL0cMcnWir-syV5b_v1VwMPQ6bCFuL1tEWstxJSj-IDpzZU9Q8_Rje2y1zrU_msMUecIbuWDM0FBH3stoHnrPBCfg8l5eKIWYMJ2NX9nTGGyMov-ETa8nS9ZzXbQ3O5dQ3cZQZa9aV8xsQnh9L-g0PZBcT3pPAC4w" alt="Memórias Póstumas" class="w-full h-full object-cover filter sepia-[0.15]">
+              </div>
+              <div class="flex-1">
+                <span class="text-[10px] font-mono text-charcoal-muted uppercase tracking-wider block">Machado de Assis · 1881</span>
+                <h4 class="font-serif font-bold text-base text-slate-900 group-hover:text-ochre-aged transition-colors leading-tight mt-0.5">
+                  Memórias Póstumas
+                </h4>
+                <span class="text-[11px] font-serif italic text-ochre-aged block mt-1">“O delírio &amp; o emplasto”</span>
+              </div>
+            </div>
+            <div class="text-xs text-charcoal-muted space-y-1 py-2 border-t border-parchment-200/60 font-mono">
+              <div class="flex justify-between">
+                <span class="">Última sessão:</span>
+                <span class="text-slate-900 font-semibold">Cap. LXIV (pág. 142)</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="">Notas marginais:</span>
+                <span class="text-slate-900 font-semibold">28 anotações</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 mt-3 border-t border-parchment-200/60 space-y-1.5">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-charcoal-muted">Progresso</span>
+              <span class="font-bold text-slate-900">82%</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-parchment-200 overflow-hidden">
+              <div class="h-full bg-slate-950 rounded-full transition-all duration-500" style="width: 82%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Obra 2: Quincas Borba -->
+        <div class="p-5 rounded-2xl bg-[#FAF8F5] border border-parchment-200/80 hover:border-amber-400 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+          <div>
+            <div class="flex items-start gap-4 mb-4">
+              <div class="w-12 h-16 rounded-lg overflow-hidden bg-[#843e2b] text-white p-1 text-center shadow-sm shrink-0 border border-[#a2513c] flex flex-col justify-between group-hover:scale-105 transition-transform duration-300">
+                <span class="text-[8px] font-mono tracking-widest">1891</span>
+                <span class="text-[9px] font-serif font-bold uppercase leading-none">QB</span>
+                <span class="text-[7px] font-mono opacity-70">Gar.</span>
+              </div>
+              <div class="flex-1">
+                <span class="text-[10px] font-mono text-charcoal-muted uppercase tracking-wider block">Machado de Assis · 1891</span>
+                <h4 class="font-serif font-bold text-base text-slate-900 group-hover:text-ochre-aged transition-colors leading-tight mt-0.5">
+                  Quincas Borba
+                </h4>
+                <span class="text-[11px] font-serif italic text-ochre-aged block mt-1">“Ao vencedor, as batatas!”</span>
+              </div>
+            </div>
+            <div class="text-xs text-charcoal-muted space-y-1 py-2 border-t border-parchment-200/60 font-mono">
+              <div class="flex justify-between">
+                <span class="">Última sessão:</span>
+                <span class="text-slate-900 font-semibold">Cap. XXII (pág. 89)</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="">Notas marginais:</span>
+                <span class="text-slate-900 font-semibold">14 anotações</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 mt-3 border-t border-parchment-200/60 space-y-1.5">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-charcoal-muted">Progresso</span>
+              <span class="font-bold text-amber-600">45%</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-parchment-200 overflow-hidden">
+              <div class="h-full bg-amber-600 rounded-full transition-all duration-500" style="width: 45%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Obra 3: Dom Casmurro -->
+        <div class="p-5 rounded-2xl bg-[#FAF8F5] border border-parchment-200/80 hover:border-amber-400 hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+          <div>
+            <div class="flex items-start gap-4 mb-4">
+              <div class="w-12 h-16 rounded-lg overflow-hidden bg-[#18363F] text-white p-1 text-center shadow-sm shrink-0 border border-[#234d59] flex flex-col justify-between group-hover:scale-105 transition-transform duration-300">
+                <span class="text-[8px] font-mono tracking-widest text-ochre-light">1899</span>
+                <span class="text-[9px] font-serif font-bold uppercase leading-none">DC</span>
+                <span class="text-[7px] font-mono opacity-70">RJ</span>
+              </div>
+              <div class="flex-1">
+                <span class="text-[10px] font-mono text-charcoal-muted uppercase tracking-wider block">Machado de Assis · 1899</span>
+                <h4 class="font-serif font-bold text-base text-slate-900 group-hover:text-ochre-aged transition-colors leading-tight mt-0.5">
+                  Dom Casmurro
+                </h4>
+                <span class="text-[11px] font-serif italic text-ochre-aged block mt-1">“Olhos de ressaca”</span>
+              </div>
+            </div>
+            <div class="text-xs text-charcoal-muted space-y-1 py-2 border-t border-parchment-200/60 font-mono">
+              <div class="flex justify-between">
+                <span class="">Última sessão:</span>
+                <span class="text-slate-900 font-semibold">Releitura concluída</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="">Notas marginais:</span>
+                <span class="text-slate-900 font-semibold">42 anotações</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 mt-3 border-t border-parchment-200/60 space-y-1.5">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-charcoal-muted">Progresso</span>
+              <span class="font-bold text-emerald-700">100% Concluído</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-parchment-200 overflow-hidden">
+              <div class="h-full bg-emerald-700 rounded-full transition-all duration-500" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- 4. FOOTER / COLOFÃO EDITORIAL -->
+<footer class="mt-16 pt-10 pb-8 border-t border-parchment-300/60 text-xs text-charcoal-muted">
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<span class="font-serif font-bold text-slate-900 uppercase tracking-widest">Eterno Retorno</span>
+<span class="">·</span>
+<span class="">Acervo Histórico e Biblioteca Aberta do Século XIX</span>
+</div>
+<div class="flex items-center gap-6 text-[11px] font-mono">
+<span class="">Depósito Legal: Arquivo Público</span>
+<a class="text-ochre-aged hover:text-slate-900 transition-colors uppercase tracking-wider font-semibold active:scale-95 inline-block" href="#inicio" id="back-to-top-link">
+            Voltar ao topo ↑
+          </a>
+</div>
+</div>
+</footer>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // 1. Alternância dinâmica de autor no Hero Banner
+    const avatarButtons = document.querySelectorAll('.hero-avatar-btn');
+    const heroPortrait = document.getElementById('hero-portrait');
+    const heroHeading = document.getElementById('hero-heading');
+    const heroSubheading = document.getElementById('hero-subheading');
+    const heroCounter = document.getElementById('hero-counter-text');
+
+    avatarButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Reset classes dos botões
+        avatarButtons.forEach(b => {
+          b.className = 'hero-avatar-btn group/av relative w-8 h-8 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-slate-700/60 hover:border-amber-400 transition-all duration-300 hover:scale-115 focus:outline-none';
+          const label = b.querySelector('.hero-name-label');
+          if (label) label.remove();
+        });
+
+        // Estiliza o botão ativo com tag de texto
+        btn.className = 'hero-avatar-btn flex items-center gap-2 bg-slate-800/90 rounded-full pl-1 pr-3 py-1 border border-amber-400/80 shrink-0 cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-slate-700 focus:outline-none';
+        const authorName = btn.getAttribute('data-author');
+        const span = document.createElement('span');
+        span.className = 'hero-name-label text-[11px] font-medium text-white tracking-wide';
+        span.textContent = authorName;
+        btn.appendChild(span);
+
+        // Atualiza textos e foto com transição suave
+        if (!isReducedMotion) {
+          heroPortrait.style.opacity = '0.2';
+          heroPortrait.style.transform = 'scale(0.97)';
+        }
+
+        setTimeout(() => {
+          const newImg = btn.getAttribute('data-img');
+          const newTitle = btn.getAttribute('data-title');
+          const newSub = btn.getAttribute('data-sub');
+          const newCount = btn.getAttribute('data-count');
+
+          if (newImg) heroPortrait.src = newImg;
+          if (newTitle) heroHeading.textContent = newTitle;
+          if (newSub) heroSubheading.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span> ${newSub}`;
+          if (newCount) heroCounter.textContent = newCount;
+
+          if (!isReducedMotion) {
+            heroPortrait.style.opacity = '0.7';
+            heroPortrait.style.transform = 'scale(1)';
+          }
+        }, 180);
+      });
+    });
+
+    // 2. Efeito Magnético / Tilt 3D nas Capas dos Livros Canônicos
+    if (!isReducedMotion) {
+      const bookCards = document.querySelectorAll('.canonical-book-card');
+      bookCards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          const deltaX = (x - centerX) / centerX;
+          const deltaY = (y - centerY) / centerY;
+          const rotateY = deltaX * 6;
+          const rotateX = -deltaY * 6;
+
+          card.style.transform = `translateY(-10px) scale(1.025) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = '';
+        });
+      });
+    }
+
+    // 3. Smooth scroll ao topo interativo no link 'Voltar ao topo'
+    const backToTop = document.getElementById('back-to-top-link');
+    if (backToTop) {
+      backToTop.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.scrollTo({
+          top: 0,
+          behavior: isReducedMotion ? 'auto' : 'smooth'
+        });
+      });
+    }
+  });
+</script>
+
+
+</body></html>
