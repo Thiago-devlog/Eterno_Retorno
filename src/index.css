@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: #FDFBF7;
+  color: #0F172A;
+  margin: 0;
+  padding: 0;
+}
+
+/* Utilitários tipográficos editoriais */
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-reader {
+  font-family: 'Merriweather', Georgia, serif;
+}
+
+.font-sans {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Efeito sutil de textura de papel */
+.bg-parchment-pattern {
+  background-color: #FDFBF7;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
