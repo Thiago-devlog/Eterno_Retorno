@@ -8,14 +8,63 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #FBF9F5;
-  color: #1E1E1E;
+  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+  background-color: #FDFBF7;
+  color: #0F172A;
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Sheen / Verniz reflexivo para capas */
+/* Sombra interna de lombada (Spine shadow conforme DESIGN.md) */
+.book-spine-shadow {
+  box-shadow: inset 4px 0 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+/* Animações editoriais clássicas com curva ease-out-expo */
+@keyframes headerSlideDown {
+  0% { opacity: 0; transform: translateY(-16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes subtlePulseGlow {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(1.06); }
+}
+
+.animate-header-enter {
+  animation: headerSlideDown 0.85s var(--ease-out-expo) forwards;
+}
+
+.animate-hero-enter {
+  animation: fadeInUp 0.9s var(--ease-out-expo) 0.1s both;
+}
+
+.animate-search-enter {
+  animation: fadeInUp 0.85s var(--ease-out-expo) 0.2s both;
+}
+
+.animate-history-enter {
+  animation: fadeInUp 0.85s var(--ease-out-expo) 0.3s both;
+}
+
+/* Stagger entrances para autores */
+.stagger-author-1 { animation: fadeInUp 0.85s var(--ease-out-expo) 0.15s both; }
+.stagger-author-2 { animation: fadeInUp 0.85s var(--ease-out-expo) 0.25s both; }
+.stagger-author-3 { animation: fadeInUp 0.85s var(--ease-out-expo) 0.35s both; }
+.stagger-author-4 { animation: fadeInUp 0.85s var(--ease-out-expo) 0.45s both; }
+
+/* Stagger entrances para livros */
+.stagger-book-1 { animation: fadeInUp 0.9s var(--ease-out-expo) 0.25s both; }
+.stagger-book-2 { animation: fadeInUp 0.9s var(--ease-out-expo) 0.35s both; }
+.stagger-book-3 { animation: fadeInUp 0.9s var(--ease-out-expo) 0.45s both; }
+
+/* Sheen / Verniz reflexivo para capas de livros */
 .book-cover-sheen {
   position: relative;
   overflow: hidden;
@@ -52,7 +101,7 @@ body {
   border-color: #DDD5C7;
 }
 
-/* Efeito tátil de livro extraído */
+/* Efeito tátil de livro extraído (Levitação 3D suave) */
 .canonical-book-card {
   transition: transform 0.45s var(--ease-out-expo), box-shadow 0.45s var(--ease-out-expo);
   transform-style: preserve-3d;
@@ -63,11 +112,7 @@ body {
   box-shadow: 0 25px 35px -10px rgba(60, 45, 30, 0.2), 0 10px 20px -5px rgba(0, 0, 0, 0.05);
 }
 
-@keyframes subtlePulseGlow {
-  0%, 100% { opacity: 0.25; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(1.06); }
-}
-
+/* Glow pulsante de fundo no hero */
 .hero-glow-pulse {
   animation: subtlePulseGlow 7s ease-in-out infinite;
 }
@@ -79,4 +124,13 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

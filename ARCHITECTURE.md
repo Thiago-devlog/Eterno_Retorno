@@ -1,0 +1,131 @@
+# Arquitetura — Eterno Retorno
+
+> **Biblioteca Digital Clássica & Leitor de Obras Canônicas do Século XIX**  
+> Engenharia editorial construída com React 18, Vite, Tailwind CSS, Framer Motion, Epub.js e Firebase (Auth & Firestore).
+
+---
+
+## 1. Visão Geral e Princípios de Engenharia
+
+O **Eterno Retorno** é uma aplicação web imersiva dedicada ao resgate e fruição da literatura brasileira canônica (com foco inicial na Trilogia Realista de Machado de Assis e contemporâneos do século XIX).
+
+### Princípios Inegociáveis (Anti-Slop & Editorial Craft)
+1. **Atmosfera de Papel Físico:** Tipografia hierárquica severa (*Playfair Display*, *Merriweather*, *Plus Jakarta Sans*), paleta pergaminho (`#FBF9F5` / `#FAF8F5`) e tinta carvão (`#1B1C1A`).
+2. **Zero Poluição Visual:** Sem gradientes roxos genéricos, sem badges redundantes, sem decorações vazias. Apenas contenção e intenção.
+3. **Fluidez Cinética:** Transições com curva *ease-out-expo* (`cubic-bezier(0.16, 1, 0.3, 1)`).
+4. **Resiliência e Continuidade Silenciosa:** O leitor nunca deve ser interrompido por formulários de login ou falhas de rede. A persistência é silenciosa e transparente.
+
+---
+
+## 2. Stack Tecnológica
+
+| Camada | Tecnologia | Propósito |
+|---|---|---|
+| **Build & Tooling** | Vite 6 + PostCSS | Bundling ultrarrápido com divisão de chunks manuais (`epubjs` isolado) |
+| **Framework UI** | React 18 (SPA) | Componentização modular e reatividade |
+| **Animações** | Framer Motion 12 | Transições de tela, gaveta de sumário e badges dinâmicos |
+| **Estilização** | Tailwind CSS 3 | Tokens editoriais estendidos (`tailwind.config.js`) |
+| **Motor de Leitura** | Epub.js (0.3.93) | Rendição paginada, navegação por CFI, sumário (TOC) e captura de seleções |
+| **Autenticação** | Firebase Auth (Anônimo) | Identidade única persistida (`uid`) sem telas de cadastro |
+| **Banco de Dados** | Cloud Firestore | Coleção `progresso_leitura` com chave composta `{uid}_{bookId}` |
+| **Resiliência Local** | Web Storage (`localStorage`) | Cache instantâneo para operação offline e fallback de rede |
+
+---
+
+## 3. Topologia e Estrutura de Pastas
+
+```
+Eterno_Retorno/
+├── public/                       # Livros EPUB, capas e retratos históricos
+├── src/
+│   ├── components/
+│   │   ├── Library/              # Acervo, cards canônicos e filtros
+│   │   │   ├── BookCard.jsx
+│   │   │   └── BookGrid.jsx
+│   │   ├── Reader/               # Motor de leitura e toolbar
+│   │   │   ├── EpubReader.jsx    # Leitor principal interativo
+│   │   │   └── ReaderModal.jsx   # (Legado/alternativo)
+│   │   └── UI/                   # Componentes de interface compartilhados
+│   ├── data/
+│   │   └── books.js              # Metadados e catálogo das obras canônicas
+│   ├── hooks/
+│   │   ├── useAuth.js            # Hook de identidade silenciosa do leitor
+│   │   └── useReader.js          # Hook de estado do leitor EPUB
+│   ├── services/
+│   │   ├── firebase.js           # Inicialização do Firebase SDK
+│   │   ├── authService.js        # Gestão de login anônimo
+│   │   ├── readingService.js     # Sincronização de progresso e CFI no Firestore
+│   │   └── epubService.js        # Temas, fontes e rendition do Epub.js
+│   ├── App.jsx                   # Shell principal: Acervo ↔ Leitor com AnimatePresence
+│   ├── index.css                 # Diretivas do Tailwind e classes de textura
+│   └── main.jsx                  # Ponto de entrada React
+├── ARCHITECTURE.md               # Este documento de visão geral
+├── ROADMAP.md                    # Plano mestre de desenvolvimento em 4 fases
+├── SKILL.md                      # Regras inegociáveis de design editorial
+├── tailwind.config.js            # Design tokens da paleta pergaminho/tinta
+└── vite.config.js                # Chunks otimizados para produção
+```
+
+---
+
+## 4. Modelo de Dados — Cloud Firestore
+
+### Coleção: `progresso_leitura`
+- **ID do Documento:** `{userId}_{bookId}` (ex: `anon_84f9a2_memorias-posthumas`)
+  - Chave composta evita índices compostos caros e permite leituras pontuais `O(1)`.
+
+```typescript
+interface ReadingProgressDocument {
+  userId: string;          // UID anônimo do Firebase Auth
+  bookId: string;          // Identificador da obra (ex: 'memorias-posthumas')
+  cfi: string;             // Posição canônica precisa no EPUB (ex: 'epubcfi(/6/14[cap1]!/4/2/1:0)')
+  percentage: number;      // Progresso percentual arredondado (0 a 100)
+  updatedAt: Timestamp;    // Data e hora da última virada de página
+  startedAt?: Timestamp;   // Data e hora em que a obra foi iniciada pela primeira vez
+}
+```
+
+---
+
+## 5. Ciclo de Vida do Leitor e Sincronização
+
+```
+[Início do App]
+       │
+       ▼
+useAuth() ──> initSilentAuth() ──> Firebase UID anônimo obtido (ou restaurado)
+       │
+       ▼
+getLastReadBook(uid) ──> Se houver progresso > 0 ──> Exibe Card "Continuar Lendo"
+       │
+       ▼ [Usuário clica em uma obra]
+Abre <EpubReader book={selectedBook} uid={uid} />
+       │
+       ├── 1. getReadingProgress(uid, book.id) consulta último CFI
+       ├── 2. Rendition do Epub.js abre diretamente no CFI salvo
+       ├── 3. Evento 'relocated' dispara a cada página
+       │         └── Debounce de 1.000ms ──> saveReadingProgress(uid, book.id, cfi, pct)
+       │         └── Atualiza barra de progresso editorial (2px terracotta)
+       │         └── Indicador discreto na toolbar: 'Salvando...' ──> 'Sincronizado'
+       ▼
+[Fechamento do Leitor]
+Volta para a Biblioteca com estado reativo atualizado instantaneamente.
+```
+
+---
+
+## 6. Regras de Segurança do Firestore
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /progresso_leitura/{docId} {
+      // Leitor só acessa e edita documentos que iniciem com seu próprio UID
+      allow read, write: if request.auth != null 
+        && docId.matches(request.auth.uid + ".*");
+    }
+  }
+}
+```
+
