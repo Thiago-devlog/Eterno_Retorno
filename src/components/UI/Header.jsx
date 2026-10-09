@@ -55,7 +55,7 @@ export default function Header({ onSearchClick }) {
 
           <div className="flex items-center gap-2.5 p-1 pr-3 rounded-full hover:bg-parchment-200/60 active:scale-95 transition-all duration-200 cursor-pointer border border-transparent hover:border-parchment-border">
             <img 
-              src="/Machado_de_Assis_aos_57_anos.jpg" 
+              src="/assets/authors/machado-de-assis.jpg"
               alt="Perfil Leitor Canônico" 
               className="w-8 h-8 rounded-full object-cover object-top border border-slate-300 shadow-2xs" 
             />
