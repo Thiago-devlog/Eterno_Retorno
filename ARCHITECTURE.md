@@ -36,27 +36,42 @@ O **Eterno Retorno** é uma aplicação web imersiva dedicada ao resgate e frui�
 
 ```
 Eterno_Retorno/
-├── public/                       # Livros EPUB, capas e retratos históricos
+├── public/
+│   └── assets/
+│       ├── authors/              # Retratos e imagens de autores
+│       ├── books/epub/           # Arquivos EPUB do catálogo
+│       └── covers/               # Capas e fac-símiles das obras
 ├── src/
+│   ├── pages/
+│   │   └── LibraryPage.jsx       # Composição e estado local da tela da biblioteca
 │   ├── components/
 │   │   ├── Library/              # Acervo, cards canônicos e filtros
 │   │   │   ├── BookCard.jsx
-│   │   │   └── BookGrid.jsx
+│   │   │   ├── BookGrid.jsx      # Grade alternativa/legada
+│   │   │   ├── CanonicalCatalog.jsx
+│   │   │   ├── ContinueReadingCard.jsx
+│   │   │   ├── FeaturedAuthor.jsx
+│   │   │   ├── HeroBanner.jsx
+│   │   │   ├── LibraryHeader.jsx
+│   │   │   ├── QuickAccessCatalog.jsx
+│   │   │   ├── ReadingLog.jsx
+│   │   │   └── SearchBar.jsx
 │   │   ├── Reader/               # Motor de leitura e toolbar
 │   │   │   ├── EpubReader.jsx    # Leitor principal interativo
 │   │   │   └── ReaderModal.jsx   # (Legado/alternativo)
 │   │   └── UI/                   # Componentes de interface compartilhados
+│   │       └── Header.jsx        # (Legado/alternativo)
 │   ├── data/
 │   │   └── books.js              # Metadados e catálogo das obras canônicas
 │   ├── hooks/
 │   │   ├── useAuth.js            # Hook de identidade silenciosa do leitor
-│   │   └── useReader.js          # Hook de estado do leitor EPUB
+│   │   └── useReader.js          # (Legado/alternativo) Hook de estado do leitor
 │   ├── services/
 │   │   ├── firebase.js           # Inicialização do Firebase SDK
 │   │   ├── authService.js        # Gestão de login anônimo
 │   │   ├── readingService.js     # Sincronização de progresso e CFI no Firestore
 │   │   └── epubService.js        # Temas, fontes e rendition do Epub.js
-│   ├── App.jsx                   # Shell principal: Acervo ↔ Leitor com AnimatePresence
+│   ├── App.jsx                   # Shell: autenticação, progresso e troca biblioteca/leitor
 │   ├── index.css                 # Diretivas do Tailwind e classes de textura
 │   └── main.jsx                  # Ponto de entrada React
 ├── ARCHITECTURE.md               # Este documento de visão geral
@@ -65,6 +80,18 @@ Eterno_Retorno/
 ├── tailwind.config.js            # Design tokens da paleta pergaminho/tinta
 └── vite.config.js                # Chunks otimizados para produção
 ```
+
+### Convenções de organização
+- `pages/` compõe telas e concentra estado específico da página.
+- `components/Library/` contém blocos da biblioteca, cada um com uma
+  responsabilidade visual ou de interação.
+- `components/Reader/` contém a interface de leitura EPUB.
+- `public/assets/` guarda os arquivos estáticos servidos pela aplicação,
+  separados entre retratos, capas e livros digitais.
+- `services/`, `hooks/` e `data/` isolam acesso externo, estado compartilhado e
+  conteúdo estático, respectivamente.
+- Os arquivos marcados como legados permanecem no repositório, mas não fazem
+  parte do fluxo ativo iniciado por `App.jsx`.
 
 ---
 
@@ -121,11 +148,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /progresso_leitura/{docId} {
-      // Leitor só acessa e edita documentos que iniciem com seu próprio UID
-      allow read, write: if request.auth != null 
-        && docId.matches(request.auth.uid + ".*");
+      function isOwnDocument() {
+        return request.auth != null
+          && docId.matches('^' + request.auth.uid + '_.*$');
+      }
+
+      allow read, delete: if isOwnDocument();
+      allow create, update: if isOwnDocument()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.bookId is string
+        && docId == request.auth.uid + '_' + request.resource.data.bookId
+        && request.resource.data.cfi is string
+        && request.resource.data.percentage is number
+        && request.resource.data.percentage >= 0
+        && request.resource.data.percentage <= 100;
     }
   }
 }
 ```
 
+O progresso usa sempre percentuais de `0` a `100`. Quando o Firebase não está
+configurado ou a nuvem está indisponível, a interface informa que a posição foi
+salva somente neste dispositivo; ela não apresenta esse estado como sincronizado.

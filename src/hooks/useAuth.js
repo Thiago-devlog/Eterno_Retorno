@@ -16,9 +16,8 @@ export function useAuth() {
       .then((u) => {
         setUser(u);
         setAuthReady(true);
-      })
-      .catch(() => {
-        // Sem Firebase configurado em dev: permite uso offline
+      }).catch((err) => {
+        console.error('[Eterno Retorno] Não foi possível inicializar a sessão do leitor:', err);
         setAuthReady(true);
       });
 
@@ -32,4 +31,3 @@ export function useAuth() {
 
   return { user, uid: user?.uid ?? null, authReady };
 }
-

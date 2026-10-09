@@ -20,6 +20,7 @@ import { saveReadingProgress, getReadingProgress } from '../../services/readingS
 export default function EpubReader({ 
   book, 
   uid,
+  authReady = true,
   onClose, 
   onLocationChanged, 
   onTextSelected 
@@ -28,6 +29,13 @@ export default function EpubReader({
   const bookInstanceRef = useRef(null);
   const renditionInstanceRef = useRef(null);
   const saveTimerRef = useRef(null); // Debounce timer para salvar progresso
+  const pendingProgressRef = useRef(null);
+  const syncResetTimerRef = useRef(null);
+  const onLocationChangedRef = useRef(onLocationChanged);
+  const onTextSelectedRef = useRef(onTextSelected);
+  const tocRef = useRef([]);
+  onLocationChangedRef.current = onLocationChanged;
+  onTextSelectedRef.current = onTextSelected;
 
   // Estados de Carregamento & Navegação
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +46,7 @@ export default function EpubReader({
   const [currentChapter, setCurrentChapter] = useState('');
   const [progress, setProgress] = useState(0);
   const [currentCfi, setCurrentCfi] = useState(null);
-  const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+  const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'local' | 'error'
 
   // Controles Editoriais
   const [fontSize, setFontSize] = useState(105);
@@ -55,42 +63,51 @@ export default function EpubReader({
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
     }
+    if (syncResetTimerRef.current) {
+      clearTimeout(syncResetTimerRef.current);
+    }
 
     setSyncStatus('saving');
+    pendingProgressRef.current = { cfi, percentage: pct };
 
     saveTimerRef.current = setTimeout(async () => {
+      saveTimerRef.current = null;
+      pendingProgressRef.current = null;
       try {
-        await saveReadingProgress(uid, book.id, cfi, pct);
-        setSyncStatus('saved');
-        setTimeout(() => setSyncStatus('idle'), 2500);
-      } catch {
+        const result = await saveReadingProgress(uid, book.id, cfi, pct);
+        setSyncStatus(result.remoteSynced ? 'saved' : 'local');
+        syncResetTimerRef.current = setTimeout(() => setSyncStatus('idle'), 2500);
+      } catch (err) {
+        console.error('[Eterno Retorno] Não foi possível salvar o progresso de leitura:', err);
         setSyncStatus('error');
-        setTimeout(() => setSyncStatus('idle'), 3000);
+        syncResetTimerRef.current = setTimeout(() => setSyncStatus('idle'), 3000);
       }
     }, 1000);
   }, [uid, book?.id]);
 
   // ─── Inicialização do EPUB ─────────────────────────────────────────────────
   useEffect(() => {
-    if (!book || !viewerRef.current) return;
+    if (!book || !authReady || !viewerRef.current) return;
 
     let isMounted = true;
+    let epubBookInstance = null;
+    let renditionInstance = null;
     setIsLoading(true);
     setLoadError(null);
 
     let savedCfi = null;
 
     const init = async () => {
-      // Carrega o progresso salvo (se uid disponível)
-      if (uid && book.id) {
-        const saved = await getReadingProgress(uid, book.id);
-        if (saved?.cfi) {
-          savedCfi = saved.cfi;
-          if (saved.percentage) setProgress(saved.percentage);
-        }
-      }
-
       try {
+        if (uid && book.id) {
+          const saved = await getReadingProgress(uid, book.id);
+          if (!isMounted) return;
+          if (saved?.cfi) {
+            savedCfi = saved.cfi;
+            setProgress(saved.percentage ?? 0);
+          }
+        }
+
         const { book: epubBook, rendition } = createEpubRendition(
           book.epubUrl,
           viewerRef.current,
@@ -98,6 +115,8 @@ export default function EpubReader({
           fontFamily
         );
 
+        epubBookInstance = epubBook;
+        renditionInstance = rendition;
         bookInstanceRef.current = epubBook;
         renditionInstanceRef.current = rendition;
 
@@ -107,14 +126,34 @@ export default function EpubReader({
         // Sumário (TOC)
         epubBook.loaded.navigation
           .then((nav) => {
-            if (isMounted && nav?.toc) setToc(nav.toc);
+            if (isMounted && nav?.toc) {
+              tocRef.current = nav.toc;
+              setToc(nav.toc);
+            }
           })
-          .catch(() => {});
+          .catch((err) => {
+            console.warn('[Eterno Retorno] Não foi possível carregar o sumário do EPUB:', err);
+          });
 
         // Gera localizações para cálculo de porcentagem
         epubBook.ready
-          .then(() => epubBook.locations.generate(1024))
-          .catch(() => {});
+          .then(async () => {
+            await epubBook.locations.generate(1024);
+            if (!isMounted) return;
+            const location = rendition.currentLocation();
+            if (!location?.start?.cfi) return;
+
+            const cfi = location.start.cfi;
+            const percentage = Math.round(
+              (epubBook.locations.percentageFromCfi(cfi) || 0) * 100
+            );
+            setProgress(percentage);
+            onLocationChangedRef.current?.(cfi, percentage);
+            persistProgress(cfi, percentage);
+          })
+          .catch((err) => {
+            console.warn('[Eterno Retorno] Não foi possível gerar as localizações do EPUB:', err);
+          });
 
         // Evento de mudança de página (Relocated)
         rendition.on('relocated', (location) => {
@@ -132,7 +171,7 @@ export default function EpubReader({
           }
 
           // Emite callback externo (para App.jsx e futuros consumidores)
-          onLocationChanged?.(cfi, pct);
+          onLocationChangedRef.current?.(cfi, pct);
 
           // Persiste com debounce
           persistProgress(cfi, pct);
@@ -140,7 +179,7 @@ export default function EpubReader({
           // Captura capítulo atual pelo TOC
           if (location.start.href) {
             const cleanHref = location.start.href.split('#')[0];
-            const matched = toc.find((item) =>
+            const matched = tocRef.current.find((item) =>
               item.href?.includes(cleanHref)
             );
             if (matched) setCurrentChapter(matched.label.trim());
@@ -156,15 +195,21 @@ export default function EpubReader({
               const preview = text.slice(0, 45);
               setSelectionNotice(`"${preview}${text.length > 45 ? '...' : ''}"`);
               setTimeout(() => setSelectionNotice(null), 3500);
-              onTextSelected?.(text, cfiRange);
+              onTextSelectedRef.current?.(text, cfiRange);
             }
-          } catch {}
+          } catch (err) {
+            console.warn('[Eterno Retorno] Não foi possível obter o texto selecionado no EPUB:', err);
+          }
         });
 
         // Renderiza — na posição salva ou no início
-        await rendition
-          .display(savedCfi || undefined)
-          .catch(() => rendition.display());
+        try {
+          await rendition.display(savedCfi || undefined);
+        } catch (err) {
+          if (!savedCfi) throw err;
+          console.warn('[Eterno Retorno] A posição salva não pôde ser restaurada; abrindo a edição do início:', err);
+          await rendition.display();
+        }
 
         if (isMounted) setIsLoading(false);
 
@@ -190,12 +235,29 @@ export default function EpubReader({
     return () => {
       isMounted = false;
       window.removeEventListener('keydown', handleKeyDown);
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        const pendingProgress = pendingProgressRef.current;
+        pendingProgressRef.current = null;
+        if (pendingProgress && uid && book.id) {
+          saveReadingProgress(uid, book.id, pendingProgress.cfi, pendingProgress.percentage)
+            .catch((err) => {
+              console.error('[Eterno Retorno] Não foi possível salvar a última posição ao fechar o leitor:', err);
+            });
+        }
+      }
+      if (syncResetTimerRef.current) clearTimeout(syncResetTimerRef.current);
 
-      try { renditionInstanceRef.current?.destroy(); } catch {}
-      try { bookInstanceRef.current?.destroy(); } catch {}
+      try { renditionInstance?.destroy(); } catch (err) {
+        console.warn('[Eterno Retorno] Erro ao liberar a renderização do EPUB:', err);
+      }
+      try { epubBookInstance?.destroy(); } catch (err) {
+        console.warn('[Eterno Retorno] Erro ao liberar o EPUB:', err);
+      }
+      if (renditionInstanceRef.current === renditionInstance) renditionInstanceRef.current = null;
+      if (bookInstanceRef.current === epubBookInstance) bookInstanceRef.current = null;
     };
-  }, [book.epubUrl]);
+  }, [authReady, book.epubUrl, book.id, uid, persistProgress]);
 
   // ─── Atualização reativa de tema e fonte ──────────────────────────────────
   useEffect(() => {
@@ -269,6 +331,12 @@ export default function EpubReader({
           <>
             <Cloud className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-600 opacity-90">Salvo</span>
+          </>
+        )}
+        {syncStatus === 'local' && (
+          <>
+            <CloudOff className="w-3 h-3 text-amber-600" />
+            <span className="text-amber-700 opacity-90">Salvo neste dispositivo</span>
           </>
         )}
         {syncStatus === 'error' && (

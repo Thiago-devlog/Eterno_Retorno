@@ -4,19 +4,30 @@
  * único sem formulários, persistido na sessão do navegador.
  */
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase.js';
+import { auth, isFirebaseConfigured } from './firebase.js';
+
+let silentAuthPromise;
 
 /**
  * Gera ou recupera um UID anônimo local resiliente para contingência offline.
  */
 function getLocalFallbackUser() {
   const KEY = 'er_anonymous_uid';
-  let uid = localStorage.getItem(KEY);
-  if (!uid) {
-    uid = 'anon_' + Math.random().toString(36).substring(2, 11);
-    localStorage.setItem(KEY, uid);
+  try {
+    let uid = localStorage.getItem(KEY);
+    if (!uid) {
+      uid = 'anon_' + Math.random().toString(36).substring(2, 11);
+      localStorage.setItem(KEY, uid);
+    }
+    return { uid, isAnonymous: true, isLocalFallback: true };
+  } catch (err) {
+    console.warn('[Eterno Retorno] Armazenamento local indisponível para persistir a sessão anônima:', err);
+    return {
+      uid: 'anon_' + Math.random().toString(36).substring(2, 11),
+      isAnonymous: true,
+      isLocalFallback: true
+    };
   }
-  return { uid, isAnonymous: true, isLocalFallback: true };
 }
 
 /**
@@ -25,7 +36,14 @@ function getLocalFallbackUser() {
  * Se o usuário já está autenticado (sessão persistida), não cria outro.
  */
 export function initSilentAuth() {
-  return new Promise((resolve) => {
+  if (silentAuthPromise) return silentAuthPromise;
+
+  if (!isFirebaseConfigured) {
+    silentAuthPromise = Promise.resolve(getLocalFallbackUser());
+    return silentAuthPromise;
+  }
+
+  silentAuthPromise = new Promise((resolve) => {
     // onAuthStateChanged dispara imediatamente com o usuário atual (ou null)
     const unsubscribe = onAuthStateChanged(
       auth,
@@ -52,6 +70,7 @@ export function initSilentAuth() {
       }
     );
   });
+  return silentAuthPromise;
 }
 
 /**
@@ -61,6 +80,10 @@ export function initSilentAuth() {
  * @returns {() => void} Função de cancelamento (unsubscribe)
  */
 export function onAuthChanged(callback) {
+  if (!isFirebaseConfigured) {
+    callback(null);
+    return () => {};
+  }
+
   return onAuthStateChanged(auth, callback);
 }
-

@@ -21,7 +21,7 @@ import {
   getDoc,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from './firebase.js';
+import { db, isFirebaseConfigured } from './firebase.js';
 
 const COLLECTION = 'progresso_leitura';
 
@@ -38,47 +38,57 @@ function progressDocId(userId, bookId) {
  * @param {string} bookId    - id do livro (ex: 'memorias-posthumas')
  * @param {string} cfi       - CFI exato da posição no EPUB
  * @param {number} percentage - Percentual lido (0–100)
+ * @returns {Promise<{ localSaved: boolean, remoteSynced: boolean }>}
  */
 export async function saveReadingProgress(userId, bookId, cfi, percentage) {
-  if (!userId || !bookId || !cfi) return;
+  if (!userId || !bookId || !cfi || !Number.isFinite(percentage)) {
+    throw new Error('Dados inválidos para salvar o progresso de leitura.');
+  }
 
   const key = `er_prog_${progressDocId(userId, bookId)}`;
+  const normalizedPercentage = Math.min(100, Math.max(0, Math.round(percentage)));
   const localRecord = {
     userId,
     bookId,
     cfi,
-    percentage: Math.round(percentage),
+    percentage: normalizedPercentage,
     updatedAt: new Date().toISOString()
   };
+  let localSaved = false;
 
-  // Salva no cache local imediatamente (zero latência e offline-first)
   try {
     localStorage.setItem(key, JSON.stringify(localRecord));
-  } catch {}
-
-  // Sincroniza com Cloud Firestore
-  try {
-    const docRef = doc(db, COLLECTION, progressDocId(userId, bookId));
-    const snapshot = await getDoc(docRef);
-
-    const payload = {
-      userId,
-      bookId,
-      cfi,
-      percentage: Math.round(percentage),
-      updatedAt: serverTimestamp()
-    };
-
-    // Preserva startedAt na primeira gravação
-    if (!snapshot.exists()) {
-      payload.startedAt = serverTimestamp();
-    }
-
-    await setDoc(docRef, payload, { merge: true });
+    localSaved = true;
   } catch (err) {
-    // Silencioso: falha de rede não interrompe a leitura
-    console.warn('[Eterno Retorno] Progresso salvo localmente (Firestore offline/não configurado):', err.message);
+    console.warn('[Eterno Retorno] Não foi possível salvar o progresso localmente:', err);
   }
+
+  if (isFirebaseConfigured) {
+    try {
+      const docRef = doc(db, COLLECTION, progressDocId(userId, bookId));
+      const snapshot = await getDoc(docRef);
+
+      const payload = {
+        userId,
+        bookId,
+        cfi,
+        percentage: normalizedPercentage,
+        updatedAt: serverTimestamp()
+      };
+
+      if (!snapshot.exists()) {
+        payload.startedAt = serverTimestamp();
+      }
+
+      await setDoc(docRef, payload, { merge: true });
+      return { localSaved, remoteSynced: true };
+    } catch (err) {
+      console.warn('[Eterno Retorno] Falha ao sincronizar progresso com o Firestore:', err);
+    }
+  }
+
+  if (localSaved) return { localSaved, remoteSynced: false };
+  throw new Error('O progresso não pôde ser salvo localmente nem sincronizado.');
 }
 
 /**
@@ -104,36 +114,47 @@ export async function getReadingProgress(userId, bookId) {
         startedAt: null
       };
     }
-  } catch {}
-
-  try {
-    const docRef = doc(db, COLLECTION, progressDocId(userId, bookId));
-    const snapshot = await getDoc(docRef);
-
-    if (snapshot.exists()) {
-      const data = snapshot.data();
-      const firestoreData = {
-        cfi: data.cfi,
-        percentage: data.percentage ?? 0,
-        updatedAt: data.updatedAt?.toDate?.() ?? null,
-        startedAt: data.startedAt?.toDate?.() ?? null
-      };
-
-      // Atualiza cache local com a versão mais recente da nuvem
-      try {
-        localStorage.setItem(key, JSON.stringify({
-          userId,
-          bookId,
-          cfi: firestoreData.cfi,
-          percentage: firestoreData.percentage,
-          updatedAt: firestoreData.updatedAt?.toISOString() || new Date().toISOString()
-        }));
-      } catch {}
-
-      return firestoreData;
-    }
   } catch (err) {
-    console.warn('[Eterno Retorno] Usando progresso em cache local:', err.message);
+    console.warn('[Eterno Retorno] Não foi possível ler o progresso local:', err);
+  }
+
+  if (isFirebaseConfigured) {
+    try {
+      const docRef = doc(db, COLLECTION, progressDocId(userId, bookId));
+      const snapshot = await getDoc(docRef);
+
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        const firestoreData = {
+          cfi: data.cfi,
+          percentage: data.percentage ?? 0,
+          updatedAt: data.updatedAt?.toDate?.() ?? null,
+          startedAt: data.startedAt?.toDate?.() ?? null
+        };
+
+        const localTime = localData?.updatedAt?.getTime() ?? 0;
+        const remoteTime = firestoreData.updatedAt?.getTime() ?? 0;
+        const latestData = localData && localTime > remoteTime ? localData : firestoreData;
+
+        if (latestData === firestoreData) {
+          try {
+            localStorage.setItem(key, JSON.stringify({
+              userId,
+              bookId,
+              cfi: firestoreData.cfi,
+              percentage: firestoreData.percentage,
+              updatedAt: firestoreData.updatedAt?.toISOString() || new Date().toISOString()
+            }));
+          } catch (err) {
+            console.warn('[Eterno Retorno] Não foi possível atualizar o cache local de progresso:', err);
+          }
+        }
+
+        return latestData;
+      }
+    } catch (err) {
+      console.warn('[Eterno Retorno] Usando progresso em cache local após falha no Firestore:', err);
+    }
   }
 
   return localData;
@@ -177,11 +198,12 @@ export async function getLastReadBook(userId, bookIds) {
   let latest = null;
 
   Object.entries(allProgress).forEach(([bookId, data]) => {
-    if (!latest || (data.updatedAt && data.updatedAt > latest.updatedAt)) {
+    const updatedAt = data.updatedAt?.getTime() ?? 0;
+    const latestUpdatedAt = latest?.updatedAt?.getTime() ?? -1;
+    if (!latest || updatedAt > latestUpdatedAt) {
       latest = { bookId, ...data };
     }
   });
 
   return latest;
 }
-
