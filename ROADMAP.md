@@ -11,8 +11,8 @@
 [Visão Geral no ARCHITECTURE.md] ──> O agente lê o contexto global
                                               │
 ┌─────────────────────────────────────────────┴─────────────────────────────────────────────┐
-│ 1. Fase 1: Interface & Leitor EPUB                    [ STATUS: CONCLUÍDO ]               │
-│ 2. Fase 2: Autenticação & Progresso no Firestore      [ STATUS: MOMENTO ATUAL / ATIVO ]   │
+│ 1. Fase 1: Interface, Arquivo & Leitor EPUB            [ STATUS: CONCLUÍDO ]               │
+│ 2. Fase 2: Autenticação & Progresso no Firestore      [ STATUS: IMPLEMENTADO ]            │
 │ 3. Fase 3: Destaques, Anotações & Marcações de Texto  [ STATUS: PLANEJADO ]               │
 │ 4. Fase 4: PWA, Modo Offline & Polimento Visual       [ STATUS: PLANEJADO ]               │
 └───────────────────────────────────────────────────────────────────────────────────────────┘
@@ -22,20 +22,21 @@
 
 ## 📌 Detalhamento das Fases
 
-### Fase 1: Interface & Leitor EPUB (`STATUS: CONCLUÍDO`)
-- [x] Configuração base com Vite 6 + React 18 + Tailwind CSS 3.
-- [x] Definição de tokens de design editorial no `tailwind.config.js` (paleta pergaminho/tinta, fontes *Playfair Display*, *Merriweather*, *Plus Jakarta Sans*).
-- [x] Interface do Acervo e Biblioteca inspirada na referência editorial (`stitch_eterno_retorno_digital_library`).
-- [x] Banner Hero com mestres do século XIX e alternância de retrato/metadados.
+### Fase 1: Interface, Arquivo & Leitor EPUB (`STATUS: CONCLUÍDO`)
+- [x] Stack React 19 + Vite 6 + Tailwind CSS 4 (`@tailwindcss/vite`) e Motion 12.
+- [x] Tokens editoriais em `src/index.css` via `@theme` (papel, carvão, bronze e famílias tipográficas).
+- [x] Fichário escalonado para cinco autores, com dossiês e modo acordeão em telas pequenas.
+- [x] Catálogo indica claramente quais obras têm EPUB integral disponível; somente essas abrem no leitor.
 - [x] Componente do Leitor interativo (`EpubReader.jsx`) com Epub.js:
   - Paginação fluida e atalhos de teclado (← / → / Esc).
   - Gaveta de Sumário (TOC) com transição Framer Motion.
-  - Toolbar com controle de tamanho de fonte (A-/A+), alternância tipográfica e 3 temas (*pergaminho*, *noite*, *claro*).
+  - Toolbar com controle de tamanho de fonte de 14 a 24 px, alternância tipográfica e temas papel, claro e carvão noturno.
+  - Progresso em tempo real na barra superior e preferências do leitor em `localStorage`.
   - Transição suave entre Biblioteca e Leitor via `AnimatePresence`.
 
 ---
 
-### Fase 2: Autenticação & Progresso no Firestore (`STATUS: MOMENTO ATUAL — FOCO ESTRITO`)
+### Fase 2: Autenticação & Progresso no Firestore (`STATUS: IMPLEMENTADO`)
 > **Objetivo:** Garantir a continuidade da leitura em qualquer dispositivo de maneira transparente, silenciosa e resiliente.
 
 #### 1. Autenticação de Leitor Silenciosa
@@ -87,10 +88,9 @@
 
 ---
 
-## 🎯 Instruções Estritas de Execução para o Agente
+## 🎯 Diretrizes de execução
 
-1. **Escopo Estrito:** Quando estiver trabalhando na **Fase 2**, **NÃO** inicie implementações da Fase 3 ou Fase 4 sem autorização expressa do usuário.
+1. **Escopo:** Preserve o progresso local e remoto ao evoluir o leitor. Recursos adicionais das fases 3 e 4 continuam fora do escopo até solicitação.
 2. **Economia de Tokens:** Siga rigorosamente as convenções do `Graft-main` — edições pontuais, sem reescrita integral de arquivos extensos quando alterações locais forem suficientes.
 3. **Padrão Editorial (Anti-Slop):** Mantenha fidelidade irrestrita ao `SKILL.md` e `DESIGN.md`. Sem gradientes saturados, sem bordas pesadas, sem componentes barulhentos.
 4. **Validação Contínua:** Todo ciclo de código deve ser concluído com `npm run build` passando com código de saída 0.
-

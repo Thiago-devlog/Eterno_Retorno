@@ -1,7 +1,7 @@
 # Arquitetura — Eterno Retorno
 
-> **Biblioteca Digital Clássica & Leitor de Obras Canônicas do Século XIX**  
-> Engenharia editorial construída com React 18, Vite, Tailwind CSS, Framer Motion, Epub.js e Firebase (Auth & Firestore).
+> **Biblioteca Clássica & Arquivo Literário**
+> Experiência editorial construída com React 19, Vite, Tailwind CSS 4, Motion 12, Epub.js e Firebase (Auth & Firestore).
 
 ---
 
@@ -22,9 +22,9 @@ O **Eterno Retorno** é uma aplicação web imersiva dedicada ao resgate e frui�
 | Camada | Tecnologia | Propósito |
 |---|---|---|
 | **Build & Tooling** | Vite 6 + PostCSS | Bundling ultrarrápido com divisão de chunks manuais (`epubjs` isolado) |
-| **Framework UI** | React 18 (SPA) | Componentização modular e reatividade |
-| **Animações** | Framer Motion 12 | Transições de tela, gaveta de sumário e badges dinâmicos |
-| **Estilização** | Tailwind CSS 3 | Tokens editoriais estendidos (`tailwind.config.js`) |
+| **Framework UI** | React 19 (SPA) | Componentização modular e reatividade |
+| **Animações** | Motion 12 (`framer-motion`) | Transições de tela, pastas e gaveta de sumário |
+| **Estilização** | Tailwind CSS 4 + `@tailwindcss/vite` | Tokens editoriais em `src/index.css` (`@theme`) |
 | **Motor de Leitura** | Epub.js (0.3.93) | Rendição paginada, navegação por CFI, sumário (TOC) e captura de seleções |
 | **Autenticação** | Firebase Auth (Anônimo) | Identidade única persistida (`uid`) sem telas de cadastro |
 | **Banco de Dados** | Cloud Firestore | Coleção `progresso_leitura` com chave composta `{uid}_{bookId}` |
@@ -46,6 +46,7 @@ Eterno_Retorno/
 │   │   └── LibraryPage.jsx       # Composição e estado local da tela da biblioteca
 │   ├── components/
 │   │   ├── Library/              # Acervo, cards canônicos e filtros
+│   │   │   ├── AuthorFolderDrawer.jsx # Fichário responsivo e dossiês
 │   │   │   ├── BookCard.jsx
 │   │   │   ├── BookGrid.jsx      # Grade alternativa/legada
 │   │   │   ├── CanonicalCatalog.jsx
@@ -62,6 +63,7 @@ Eterno_Retorno/
 │   │   └── UI/                   # Componentes de interface compartilhados
 │   │       └── Header.jsx        # (Legado/alternativo)
 │   ├── data/
+│   │   ├── authors.js            # Metadados dos cinco autores do fichário
 │   │   └── books.js              # Metadados e catálogo das obras canônicas
 │   ├── hooks/
 │   │   ├── useAuth.js            # Hook de identidade silenciosa do leitor
@@ -77,7 +79,7 @@ Eterno_Retorno/
 ├── ARCHITECTURE.md               # Este documento de visão geral
 ├── ROADMAP.md                    # Plano mestre de desenvolvimento em 4 fases
 ├── SKILL.md                      # Regras inegociáveis de design editorial
-├── tailwind.config.js            # Design tokens da paleta pergaminho/tinta
+├── tailwind.config.js            # Compatibilidade para utilitários legados
 └── vite.config.js                # Chunks otimizados para produção
 ```
 
@@ -86,6 +88,8 @@ Eterno_Retorno/
 - `components/Library/` contém blocos da biblioteca, cada um com uma
   responsabilidade visual ou de interação.
 - `components/Reader/` contém a interface de leitura EPUB.
+- `components/Library/AuthorFolderDrawer.jsx` apresenta os cinco dossiês; em telas estreitas, as pastas viram um acordeão.
+- `data/authors.js` guarda metadados editoriais concisos. A leitura direta só é habilitada quando existe uma edição EPUB correspondente em `data/books.js`.
 - `public/assets/` guarda os arquivos estáticos servidos pela aplicação,
   separados entre retratos, capas e livros digitais.
 - `services/`, `hooks/` e `data/` isolam acesso externo, estado compartilhado e
@@ -141,7 +145,19 @@ Volta para a Biblioteca com estado reativo atualizado instantaneamente.
 
 ---
 
-## 6. Regras de Segurança do Firestore
+As preferências tipográficas (14–24 px, família e tema) ficam em `localStorage`
+sob a chave `er_reader_preferences`. A última posição EPUB continua sendo salva
+no cache local pelo serviço de leitura e sincronizada com o Firestore quando
+este está configurado.
+
+## 6. Tokens e identidade editorial
+
+`src/index.css` declara em `@theme` as cores `paper-canvas`, `paper-surface`,
+`paper-dark`, `sepia-accent` e `charcoal`, além das famílias serifadas de título
+e leitura e da fonte sans-serif de metadados. O `@config` mantém utilitários
+existentes durante a migração do Tailwind CSS 3 para a versão 4.
+
+## 7. Regras de Segurança do Firestore
 
 ```javascript
 rules_version = '2';

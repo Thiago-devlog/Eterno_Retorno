@@ -17,6 +17,34 @@ import {
 import { createEpubRendition, applyReaderThemes } from '../../services/epubService.js';
 import { saveReadingProgress, getReadingProgress } from '../../services/readingService.js';
 
+const READER_PREFERENCES_KEY = 'er_reader_preferences';
+const DEFAULT_READER_PREFERENCES = {
+  fontSize: 18,
+  fontFamily: 'Merriweather',
+  theme: 'parchment'
+};
+
+function readReaderPreferences() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(READER_PREFERENCES_KEY) || 'null');
+    return {
+      fontSize:
+        Number.isInteger(saved?.fontSize) && saved.fontSize >= 14 && saved.fontSize <= 24
+          ? saved.fontSize
+          : DEFAULT_READER_PREFERENCES.fontSize,
+      fontFamily: ['Merriweather', 'Lora', 'Plus Jakarta Sans'].includes(saved?.fontFamily)
+        ? saved.fontFamily
+        : DEFAULT_READER_PREFERENCES.fontFamily,
+      theme: ['parchment', 'clear', 'night'].includes(saved?.theme)
+        ? saved.theme
+        : DEFAULT_READER_PREFERENCES.theme
+    };
+  } catch (err) {
+    console.warn('[Eterno Retorno] Não foi possível carregar as preferências do leitor:', err);
+    return DEFAULT_READER_PREFERENCES;
+  }
+}
+
 export default function EpubReader({ 
   book, 
   uid,
@@ -34,6 +62,7 @@ export default function EpubReader({
   const onLocationChangedRef = useRef(onLocationChanged);
   const onTextSelectedRef = useRef(onTextSelected);
   const tocRef = useRef([]);
+  const [initialPreferences] = useState(readReaderPreferences);
   onLocationChangedRef.current = onLocationChanged;
   onTextSelectedRef.current = onTextSelected;
 
@@ -49,11 +78,22 @@ export default function EpubReader({
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'local' | 'error'
 
   // Controles Editoriais
-  const [fontSize, setFontSize] = useState(105);
-  const [fontFamily, setFontFamily] = useState('Merriweather');
-  const [theme, setTheme] = useState('parchment');
+  const [fontSize, setFontSize] = useState(initialPreferences.fontSize);
+  const [fontFamily, setFontFamily] = useState(initialPreferences.fontFamily);
+  const [theme, setTheme] = useState(initialPreferences.theme);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectionNotice, setSelectionNotice] = useState(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        READER_PREFERENCES_KEY,
+        JSON.stringify({ fontSize, fontFamily, theme })
+      );
+    } catch (err) {
+      console.warn('[Eterno Retorno] Não foi possível salvar as preferências do leitor:', err);
+    }
+  }, [fontFamily, fontSize, theme]);
 
   // ─── Salvar progresso com debounce de 1 segundo ───────────────────────────
   const persistProgress = useCallback((cfi, pct) => {
@@ -121,7 +161,7 @@ export default function EpubReader({
         renditionInstanceRef.current = rendition;
 
         rendition.themes.select(theme);
-        rendition.themes.fontSize(`${fontSize}%`);
+        rendition.themes.fontSize(`${fontSize}px`);
 
         // Sumário (TOC)
         epubBook.loaded.navigation
@@ -269,7 +309,7 @@ export default function EpubReader({
 
   useEffect(() => {
     if (renditionInstanceRef.current) {
-      renditionInstanceRef.current.themes.fontSize(`${fontSize}%`);
+      renditionInstanceRef.current.themes.fontSize(`${fontSize}px`);
     }
   }, [fontSize]);
 
@@ -294,15 +334,15 @@ export default function EpubReader({
   // ─── Classes dinâmicas por tema ──────────────────────────────────────────
   const shellTheme = {
     parchment: {
-      bg: 'bg-[#FDFBF7] text-[#0F172A]',
-      header: 'bg-[#FAF8F5]/95 border-[#E8E3D9]/80 text-[#0F172A]',
+      bg: 'bg-[#F7F4EE] text-[#1B1C1A]',
+      header: 'bg-[#F7F4EE]/95 border-[#D8CEBC]/80 text-[#1B1C1A]',
       bookCard: 'bg-white border-[#E8E3D9]/80 shadow-card-soft',
       btn: 'hover:bg-black/5',
       divider: 'bg-[#E8E3D9]/80'
     },
     night: {
-      bg: 'bg-[#14161A] text-[#E2DFD8]',
-      header: 'bg-[#1A1D23]/95 border-[#2A2E39] text-[#E2DFD8]',
+      bg: 'bg-[#2A2724] text-[#E8E0D2]',
+      header: 'bg-[#2A2724]/95 border-[#51483B] text-[#E8E0D2]',
       bookCard: 'bg-[#181B22] border-[#2A2E39]',
       btn: 'hover:bg-white/5',
       divider: 'bg-[#2A2E39]'
@@ -413,6 +453,17 @@ export default function EpubReader({
         </div>
       </header>
 
+      <div
+        className="h-[2px] w-full bg-current/10"
+        role="progressbar"
+        aria-label="Progresso da leitura"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress}
+      >
+        <div className="h-full bg-sepia-accent transition-[width] duration-200" style={{ width: `${progress}%` }} />
+      </div>
+
       {/* ─── Popover de Ajustes Tipográficos ─── */}
       <AnimatePresence>
         {isSettingsOpen && (
@@ -436,26 +487,26 @@ export default function EpubReader({
             <div className="mb-4">
               <div className="flex justify-between text-xs font-sans mb-2 opacity-80 font-medium">
                 <span>Escala da Letra</span>
-                <span className="font-mono">{fontSize}%</span>
+                <span className="font-mono">{fontSize}px</span>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setFontSize(Math.max(85, fontSize - 10))} className="flex-1 py-1.5 rounded border border-current/20 text-xs font-semibold hover:bg-black/5 transition-colors">A-</button>
-                <button onClick={() => setFontSize(105)} className="py-1.5 px-3 rounded border border-current/20 text-xs hover:bg-black/5 transition-colors">Padrão</button>
-                <button onClick={() => setFontSize(Math.min(150, fontSize + 10))} className="flex-1 py-1.5 rounded border border-current/20 text-xs font-semibold hover:bg-black/5 transition-colors">A+</button>
+                <button onClick={() => setFontSize(Math.max(14, fontSize - 1))} className="flex-1 py-1.5 rounded border border-current/20 text-xs font-semibold hover:bg-black/5 transition-colors">A-</button>
+                <button onClick={() => setFontSize(18)} className="py-1.5 px-3 rounded border border-current/20 text-xs hover:bg-black/5 transition-colors">Padrão</button>
+                <button onClick={() => setFontSize(Math.min(24, fontSize + 1))} className="flex-1 py-1.5 rounded border border-current/20 text-xs font-semibold hover:bg-black/5 transition-colors">A+</button>
               </div>
             </div>
 
             {/* Fonte de Leitura */}
             <div className="mb-4">
               <span className="text-xs font-sans block mb-2 opacity-80 font-medium">Fonte de Leitura</span>
-              <div className="grid grid-cols-2 gap-2">
-                {['Merriweather', 'Plus Jakarta Sans'].map((f) => (
+              <div className="grid grid-cols-3 gap-2">
+                {['Merriweather', 'Lora', 'Plus Jakarta Sans'].map((f) => (
                   <button
                     key={f}
                     onClick={() => setFontFamily(f)}
                     className={`py-1.5 px-2 text-center rounded border text-xs transition-all ${fontFamily === f ? 'border-terracotta text-terracotta font-semibold bg-terracotta/5' : 'border-current/20 opacity-70 hover:opacity-100'}`}
                   >
-                    {f === 'Merriweather' ? 'Merriweather' : 'Jakarta Sans'}
+                    {f === 'Plus Jakarta Sans' ? 'Jakarta Sans' : f}
                   </button>
                 ))}
               </div>
@@ -466,9 +517,9 @@ export default function EpubReader({
               <span className="text-xs font-sans block mb-2 opacity-80 font-medium">Papel &amp; Iluminação</span>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { key: 'parchment', label: 'Pergaminho', bg: '#FDFBF7', color: '#0F172A' },
-                  { key: 'clear', label: 'Alvo', bg: '#FFFFFF', color: '#1E293B' },
-                  { key: 'night', label: 'Noturno', bg: '#16181D', color: '#E2DFD8' }
+                  { key: 'parchment', label: 'Sépia', bg: '#F7F4EE', color: '#1B1C1A' },
+                  { key: 'clear', label: 'Claro', bg: '#FFFFFF', color: '#1E293B' },
+                  { key: 'night', label: 'Noturno', bg: '#2A2724', color: '#E8E0D2' }
                 ].map(({ key, label, bg, color }) => (
                   <button
                     key={key}
@@ -604,18 +655,7 @@ export default function EpubReader({
           <span className="hidden sm:inline">Use as setas laterais ou as teclas ← → para folhear</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Barra de Progresso 2px terracota (DESIGN.md spec) */}
-          <div className="w-24 sm:w-44 h-[2px] bg-[#E2DCD5] rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-terracotta transition-all duration-300 rounded-full"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <span className="font-mono text-[11px] font-semibold text-terracotta">
-            {progress}%
-          </span>
-        </div>
+        <span className="font-mono text-[11px] font-semibold text-sepia-accent">{progress}%</span>
       </footer>
     </motion.div>
   );

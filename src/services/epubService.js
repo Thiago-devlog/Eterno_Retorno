@@ -6,13 +6,15 @@ import ePub from 'epubjs';
 export const getReaderThemeStyles = (fontFamily = 'Merriweather') => {
   const fontRule = fontFamily === 'Plus Jakarta Sans'
     ? '"Plus Jakarta Sans", system-ui, sans-serif !important'
-    : '"Merriweather", Georgia, serif !important';
+    : fontFamily === 'Lora'
+      ? '"Lora", Georgia, serif !important'
+      : '"Merriweather", Georgia, serif !important';
 
   return {
     parchment: {
       body: {
-        'background-color': '#FDFBF7 !important',
-        'color': '#0F172A !important',
+        'background-color': '#F7F4EE !important',
+        'color': '#1B1C1A !important',
         'font-family': fontRule,
         'line-height': '1.85 !important',
         'padding': '0 2rem !important',
@@ -21,29 +23,29 @@ export const getReaderThemeStyles = (fontFamily = 'Merriweather') => {
       },
       'p, div, span, blockquote': {
         'font-family': fontRule,
-        'color': '#0F172A !important',
+        'color': '#1B1C1A !important',
         'line-height': '1.85 !important'
       },
       'h1, h2, h3, h4, h5': {
         'font-family': '"Playfair Display", Georgia, serif !important',
-        'color': '#0F172A !important',
+        'color': '#1B1C1A !important',
         'font-weight': '600 !important',
         'text-align': 'center !important',
         'margin-top': '2rem !important',
         'margin-bottom': '1.5rem !important'
       },
       a: {
-        'color': '#C28251 !important',
+        'color': '#8C6D46 !important',
         'text-decoration': 'none !important'
       },
       '::selection': {
-        'background': 'rgba(194, 130, 81, 0.28) !important'
+        'background': 'rgba(140, 109, 70, 0.28) !important'
       }
     },
     night: {
       body: {
-        'background-color': '#16181D !important',
-        'color': '#E2DFD8 !important',
+        'background-color': '#2A2724 !important',
+        'color': '#E8E0D2 !important',
         'font-family': fontRule,
         'line-height': '1.85 !important',
         'padding': '0 2rem !important',
@@ -51,12 +53,12 @@ export const getReaderThemeStyles = (fontFamily = 'Merriweather') => {
       },
       'p, div, span, blockquote': {
         'font-family': fontRule,
-        'color': '#E2DFD8 !important',
+        'color': '#E8E0D2 !important',
         'line-height': '1.85 !important'
       },
       'h1, h2, h3, h4, h5': {
         'font-family': '"Playfair Display", Georgia, serif !important',
-        'color': '#F5F2EB !important',
+        'color': '#F7F4EE !important',
         'text-align': 'center !important',
         'margin-top': '2rem !important',
         'margin-bottom': '1.5rem !important'

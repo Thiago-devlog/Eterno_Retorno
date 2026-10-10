@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@theme {
+  --color-paper-canvas: #F7F4EE;
+  --color-paper-surface: #EFE9DF;
+  --color-paper-dark: #2A2724;
+  --color-sepia-accent: #8C6D46;
+  --color-charcoal: #1B1C1A;
+
+  --font-serif-title: "Playfair Display", "Cinzel", Georgia, serif;
+  --font-serif-body: "Lora", "Merriweather", Georgia, serif;
+  --font-sans-label: "Plus Jakarta Sans", sans-serif;
+}
 
 :root {
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -8,9 +19,9 @@
 }
 
 body {
-  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
-  background-color: #FDFBF7;
-  color: #0F172A;
+  font-family: var(--font-sans-label);
+  background-color: var(--color-paper-canvas);
+  color: var(--color-charcoal);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
